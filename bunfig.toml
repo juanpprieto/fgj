@@ -1,0 +1,3 @@
+[test]
+# Removes the temporary directories that the tests make, after the whole run.
+preload = ["./test/support/tmp.ts"]

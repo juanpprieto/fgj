@@ -1,0 +1,96 @@
+# Contributor code runs only on disposable GitHub-hosted runners.
+# Repository settings must require approval for every outside contributor.
+name: contributor
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contributor-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CI: "1"
+      FGJ_TEST_WORKERS: "1"
+      FGJ_FORGEJO_PORT: "49380"
+    steps:
+      # Both GitHub actions use reviewed full commit pins and the Node 24 runtime.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Install pinned runtimes and harness tools
+        run: |
+          npm install --global npm@11.17.0 bun@1.3.14 @openai/codex@0.155.1 @earendil-works/pi-coding-agent@0.87.1
+          test "$(node --version)" = v24.19.0
+          test "$(npm --version)" = 11.17.0
+          test "$(bun --version)" = 1.3.14
+          test "$(uname -m)" = aarch64
+          codex --version
+          pi --version
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Build one candidate and retain its path
+        run: |
+          bun run package > "$RUNNER_TEMP/fgj-candidate.json"
+          CANDIDATE_FILE="$RUNNER_TEMP/fgj-candidate.json" bun -e 'const candidate = JSON.parse(await Bun.file(process.env.CANDIDATE_FILE).text()); console.log("FGJ_PACKAGE_TARBALL=" + candidate.tarball);' >> "$GITHUB_ENV"
+          cat "$RUNNER_TEMP/fgj-candidate.json"
+      - name: Check source, server and harness rules
+        run: bun run check
+      - name: Record installation matrix and privacy checks
+        run: bun test test/unit/package.test.ts test/unit/public.test.ts --only-failures
+      - name: Read through the npm-installed candidate
+        run: bun test test/server/package.test.ts
+      - name: Stop owned test Forgejo
+        if: always()
+        run: bun run forgejo:stop
+
+  package-macos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Install pinned runtimes
+        run: |
+          npm install --global npm@11.17.0 bun@1.3.14
+          test "$(node --version)" = v24.19.0
+          test "$(npm --version)" = 11.17.0
+          test "$(bun --version)" = 1.3.14
+          test "$(uname -m)" = arm64
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Build one candidate and retain its path
+        run: |
+          bun run package > "$RUNNER_TEMP/fgj-candidate.json"
+          CANDIDATE_FILE="$RUNNER_TEMP/fgj-candidate.json" bun -e 'const candidate = JSON.parse(await Bun.file(process.env.CANDIDATE_FILE).text()); console.log("FGJ_PACKAGE_TARBALL=" + candidate.tarball);' >> "$GITHUB_ENV"
+          cat "$RUNNER_TEMP/fgj-candidate.json"
+      # Hosted arm64 macOS cannot run the Podman VM. This job needs no test server.
+      # Release-only server proof uses the owner's Mac and the exact CI archive.
+      - name: Record installation matrix and privacy checks
+        run: bun test test/unit/package.test.ts test/unit/public.test.ts --only-failures

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Lint the staged files, then typecheck and check the docs of the whole tree, before every commit.
+set -e
+./node_modules/.bin/biome check --staged --no-errors-on-unmatched
+bun run typecheck
+bun scripts/docs-check.ts

@@ -1,0 +1,206 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Release mode
+        type: choice
+        required: true
+        default: dry-run
+        options: [dry-run, stage]
+      dist_tag:
+        description: Approved npm distribution tag
+        type: choice
+        required: true
+        default: rc
+        options: [rc, latest]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: "1"
+  FGJ_RELEASE_MODE: dry-run
+  FGJ_RELEASE_REQUESTED_MODE: ${{ inputs.mode }}
+  FGJ_RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      FGJ_TEST_WORKERS: "1"
+      FGJ_FORGEJO_PORT: "49381"
+    outputs:
+      artifact-id: ${{ steps.archive.outputs.artifact-id }}
+      sha256: ${{ steps.candidate.outputs.sha256 }}
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Install pinned runtimes and harness tools
+        run: |
+          npm install --global npm@11.17.0 bun@1.3.14 @openai/codex@0.155.1 @earendil-works/pi-coding-agent@0.87.1
+          test "$(node --version)" = v24.19.0
+          test "$(npm --version)" = 11.17.0
+          test "$(bun --version)" = 1.3.14
+          test "$(uname -m)" = aarch64
+          codex --version
+          pi --version
+      - name: Verify release source
+        run: bun scripts/release-check.ts
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Build one release candidate
+        run: bun run package --release > "$RUNNER_TEMP/fgj-candidate.json"
+      - name: Bind candidate bytes
+        id: candidate
+        run: bun scripts/release-artifact.ts prepare "$RUNNER_TEMP/fgj-candidate.json" "$RUNNER_TEMP/fgj-release"
+      - name: Check source, server and harness rules
+        run: bun run check
+      - name: Record installation matrix and privacy checks
+        run: bun test test/unit/package.test.ts test/unit/public.test.ts --only-failures
+      - name: Read through the npm-installed candidate
+        run: bun test test/server/package.test.ts
+      - name: Verify tested bytes
+        run: bun scripts/release-artifact.ts verify "$RUNNER_TEMP/fgj-release" "$FGJ_RELEASE_SHA256"
+      - name: Retain checked candidate
+        id: archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: fgj-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fgj-release
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false
+          include-hidden-files: false
+      - name: Stop owned test Forgejo
+        if: always()
+        run: bun run forgejo:stop
+
+  package-macos:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      FGJ_RELEASE_SHA256: ${{ needs.build.outputs.sha256 }}
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Install pinned runtimes
+        run: |
+          npm install --global npm@11.17.0 bun@1.3.14
+          test "$(node --version)" = v24.19.0
+          test "$(npm --version)" = 11.17.0
+          test "$(bun --version)" = 1.3.14
+          test "$(uname -m)" = arm64
+      - name: Verify release source
+        run: bun scripts/release-check.ts
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Download this run's candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/fgj-release
+          digest-mismatch: error
+      - name: Verify candidate bytes
+        run: bun scripts/release-artifact.ts verify "$RUNNER_TEMP/fgj-release" "$FGJ_RELEASE_SHA256"
+      - name: Record installation matrix and privacy checks
+        run: bun test test/unit/package.test.ts test/unit/public.test.ts --only-failures
+
+  stage:
+    needs: [build, package-macos]
+    if: inputs.mode == 'stage'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    environment:
+      name: npm-stage
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FGJ_RELEASE_MODE: stage
+      FGJ_RELEASE_SHA256: ${{ needs.build.outputs.sha256 }}
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Install pinned runtimes
+        run: |
+          npm install --global npm@11.17.0 bun@1.3.14
+          test "$(node --version)" = v24.19.0
+          test "$(npm --version)" = 11.17.0
+          test "$(bun --version)" = 1.3.14
+          test "$(uname -m)" = aarch64
+      - name: Verify release source
+        run: bun scripts/release-check.ts
+      - name: Download this run's candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/fgj-release
+          digest-mismatch: error
+      - name: Verify candidate bytes
+        run: bun scripts/release-artifact.ts verify "$RUNNER_TEMP/fgj-release" "$FGJ_RELEASE_SHA256"
+      - name: Stage exact candidate
+        run: |
+          bun scripts/release-artifact.ts verify "$RUNNER_TEMP/fgj-release" "$FGJ_RELEASE_SHA256"
+          release_home="$(mktemp -d "$RUNNER_TEMP/fgj-npm-stage.XXXXXX")"
+          trap 'rm -rf "$release_home"' EXIT
+          : > "$release_home/npmrc"
+          : > "$release_home/global-npmrc"
+          cd "$release_home"
+          env -i \
+            PATH="$PATH" HOME="$release_home" TMPDIR="$release_home" \
+            CI=true GITHUB_ACTIONS=true \
+            GITHUB_SERVER_URL="$GITHUB_SERVER_URL" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" \
+            GITHUB_REPOSITORY_ID="$GITHUB_REPOSITORY_ID" GITHUB_REPOSITORY_OWNER_ID="$GITHUB_REPOSITORY_OWNER_ID" \
+            GITHUB_SHA="$GITHUB_SHA" GITHUB_REF="$GITHUB_REF" \
+            GITHUB_WORKFLOW_REF="$GITHUB_WORKFLOW_REF" GITHUB_WORKFLOW_SHA="$GITHUB_WORKFLOW_SHA" \
+            GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT" \
+            GITHUB_JOB="$GITHUB_JOB" RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" \
+            ACTIONS_ID_TOKEN_REQUEST_URL="$ACTIONS_ID_TOKEN_REQUEST_URL" \
+            ACTIONS_ID_TOKEN_REQUEST_TOKEN="$ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            npm_config_userconfig="$release_home/npmrc" npm_config_globalconfig="$release_home/global-npmrc" \
+            npm_config_cache="$release_home/cache" \
+            npm stage publish "$FGJ_PACKAGE_TARBALL" --access public --tag "$FGJ_RELEASE_DIST_TAG" --provenance --ignore-scripts --registry https://registry.npmjs.org

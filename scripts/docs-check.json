@@ -1,0 +1,52 @@
+{
+	"exclusions": [
+		{
+			"path": "test/fixtures",
+			"reason": "test/README.md describes the fixtures and where they come from."
+		},
+		{
+			"path": "test/harness",
+			"reason": "test/README.md describes the harness tests."
+		},
+		{
+			"path": "test/server",
+			"reason": "test/README.md describes the real-server tests."
+		},
+		{
+			"path": "test/support",
+			"reason": "test/README.md describes the test helpers."
+		},
+		{
+			"path": "test/unit",
+			"reason": "test/README.md describes the unit tests."
+		},
+		{
+			"path": ".gitignore",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "biome.json",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "bun.lock",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "bunfig.toml",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "mise.toml",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "package.json",
+			"reason": "Tool config: the user-facing README does not list it."
+		},
+		{
+			"path": "tsconfig.json",
+			"reason": "Tool config: the user-facing README does not list it."
+		}
+	]
+}

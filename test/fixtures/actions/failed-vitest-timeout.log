@@ -1,0 +1,15 @@
+2026-01-01T00:00:00.0000000Z Synthetic Vitest timeout for the Actions reader
+2026-01-01T00:00:01.0000000Z ⭐ Run Main Tests
+2026-01-01T00:00:02.0000000Z [32m✓[39m src/a.test.ts (12 tests)
+2026-01-01T00:00:03.0000000Z [31m→ spawnSync pi ETIMEDOUT[39m
+2026-01-01T00:00:04.0000000Z Failed Tests 1
+2026-01-01T00:00:05.0000000Z [31mFAIL[39m src/c.integration.test.ts > loader > starts the extension
+2026-01-01T00:00:06.0000000Z [31mError: spawnSync pi ETIMEDOUT[39m
+2026-01-01T00:00:07.0000000Z  ❯ runPi src/c.ts:15:18
+2026-01-01T00:00:08.0000000Z  Test Files 1 failed | 2 passed (3)
+2026-01-01T00:00:09.0000000Z       Tests 1 failed | 21 passed (22)
+2026-01-01T00:00:10.0000000Z ⚙️ [runner]: exitcode '1': failure
+2026-01-01T00:00:11.0000000Z ⭐ Run Post Check out
+2026-01-01T00:00:12.0000000Z   ✅ Success - Post Check out
+2026-01-01T00:00:13.0000000Z 🏁  Job failed
+2026-01-01T00:00:14.0000000Z Job 'verify' failed
