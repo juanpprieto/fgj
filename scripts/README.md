@@ -64,6 +64,8 @@ these scripts do not ship to consumers.
   rules in `AGENTS.md`: a README in every directory that links each direct child, local
   README links that work, and TSDoc on each exported function and callable type. The
   pre-commit hook and `check.ts` run it. It prints one line per issue, with the fix.
+  The `.github` directory uses `overview.md` instead of `README.md` because GitHub
+  displays a `.github/README.md` before the root README. The same checks apply to that guide.
   It finds links with Bun's Markdown parser and checks them against the files that git
   lists. It does not find a raw HTML link written as `href = "x"` with spaces, or with
   no quotes, and a quoted `href=` inside another attribute can hide the real one. The

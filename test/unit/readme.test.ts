@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { docFiles } from "../../scripts/docs-check.ts";
 import {
 	VERBS_END,
 	VERBS_START,
@@ -44,4 +45,13 @@ describe("README verb table", () => {
 		// On a failure, run: bun run docs:verbs
 		expect(readme).toBe(withVerbTable(readme, verbTable(MANIFEST)));
 	});
+});
+
+test("GitHub selects the root README rather than a directory guide", async () => {
+	const files = await docFiles(join(import.meta.dir, "../.."));
+	const githubReadmes = files.filter((file) =>
+		/^\.github\/readme(?:\.[^/]+)?$/i.test(file),
+	);
+	expect(githubReadmes).toEqual([]);
+	expect(files).toContain("README.md");
 });

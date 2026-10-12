@@ -49,6 +49,25 @@ describe("docs check: READMEs", () => {
 		).toEqual([]);
 	});
 
+	test("the GitHub directory guide uses overview without disabling nested README checks", () => {
+		const files = {
+			"README.md": "[GitHub](.github/overview.md)",
+			".github/overview.md": "[workflows](workflows/README.md)",
+			".github/workflows/README.md": "[CI](contributor.yml)",
+			".github/workflows/contributor.yml": "name: contributor\n",
+		};
+		expect(check(files)).toEqual([]);
+		expect(check({ ...files, ".github/overview.md": "No links." })).toEqual([
+			".github/overview.md missing-map-entry",
+		]);
+		expect(
+			check({ ...files, ".github/overview.md": "[gone](gone.md)" }),
+		).toContain(".github/overview.md broken-link");
+		const { ".github/workflows/README.md": _readme, ...missing } = files;
+		expect(check(missing)).toContain(
+			".github/workflows/README.md missing-readme",
+		);
+	});
 	test("a directory without a README is missing-readme, and its parent must link it", () => {
 		expect(
 			check({ "README.md": "No links.", "src/a.ts": "const x = 1;\n" }),

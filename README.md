@@ -316,14 +316,14 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) for a source-development path and 
 No development step requires a global fgj installation.
 Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
-Each directory has a README that says what it owns:
+Each directory has a guide that says what it owns:
 
 - [`src/`](src/README.md): the `fgj` binary.
 - [`skill/`](skill/README.md): the generic fgj agent skill.
 - [`test/`](test/README.md): unit, real-server, and harness tests.
 - [`scripts/`](scripts/README.md): developer and CI tooling: the test server, the checks, and the build.
 - [`docs/`](docs/README.md): the design and the harness check guide.
-- [`.github/`](.github/README.md): public GitHub CI and its security boundaries.
+- [`.github/`](.github/overview.md): public GitHub CI and its security boundaries.
 - [`.githooks/`](.githooks/README.md): the pre-commit hook.
 - [`assets/`](assets/README.md): the logo files that the documentation shows.
 

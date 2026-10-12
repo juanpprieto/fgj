@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /**
  * Checks the documentation rules in AGENTS.md and changes no file:
- * - every directory has a README.md that links each direct child file and
- *   directory;
+ * - every directory has an index that links each direct child file and directory:
+ *   README.md, except .github/overview.md to preserve GitHub's root README;
  * - every local link in a README works;
  * - every exported function and callable type has TSDoc with a summary,
  *   `@param` for each parameter, `@returns`, and `@example`.
@@ -20,6 +20,10 @@ import ts from "typescript";
 
 const README = "README.md";
 
+/** GitHub selects a .github README before the root README, so its guide needs another name. */
+function indexName(dir: string): string {
+	return dir === ".github" ? "overview.md" : README;
+}
 /** A path that the README rules skip, with the reason. */
 export interface Exclusion {
 	path: string;
@@ -64,7 +68,7 @@ export function checkDocs(
 	const known = new Set([...files, ...directoriesOf(files)]);
 	const issues = [...skip.issues];
 	for (const dir of dirs) {
-		const readme = dir === "." ? README : `${dir}/${README}`;
+		const readme = dir === "." ? README : `${dir}/${indexName(dir)}`;
 		if (!kept.includes(readme) || !existsSync(path.join(root, readme))) {
 			issues.push({
 				code: "missing-readme",
@@ -200,13 +204,17 @@ function mapIssues(
 			children.set(path.posix.basename(d), true);
 	}
 	for (const f of files) {
-		if (path.posix.dirname(f) === dir && path.posix.basename(f) !== README)
+		if (path.posix.dirname(f) === dir && f !== readme)
 			children.set(path.posix.basename(f), false);
 	}
 	return [...children]
 		.filter(
 			([name, isDir]) =>
-				!linked.has(name) && !(isDir && linked.has(`${name}/${README}`)),
+				!linked.has(name) &&
+				!(
+					isDir &&
+					linked.has(`${name}/${indexName(path.posix.join(dir, name))}`)
+				),
 		)
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([name]) => ({
