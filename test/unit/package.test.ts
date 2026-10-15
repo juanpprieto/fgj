@@ -605,3 +605,35 @@ describe("package inputs fail closed", () => {
 		expect(guide).not.toContain("bun run install:local");
 	});
 });
+
+test.if(process.platform === "darwin")(
+	"native macOS builds pass code-signature and byte checks",
+	() => {
+		const home = tempDir("fgj-native-macos-");
+		const binary = join(home, "fgj");
+		const built = run(
+			[process.execPath, "run", "build", "--outfile", binary],
+			ROOT,
+			cleanEnv(home),
+		);
+		expect(built.code, built.stderr).toBe(0);
+		const signature = run(
+			["/usr/bin/codesign", "--verify", "--strict", binary],
+			home,
+		);
+		expect(signature.code, signature.stderr).toBe(0);
+		const compared = run(["/usr/bin/cmp", binary, binary], home);
+		expect(compared.code, compared.stderr).toBe(0);
+		const emptyPath = join(home, "empty-bin");
+		mkdirSync(emptyPath);
+		const env = { ...cleanEnv(home), PATH: emptyPath };
+		const help = run([binary, "help"], home, env);
+		expect(help.code, help.stderr).toBe(0);
+		expect(help.stdout).toContain("fgj");
+		const version = run([binary, "version"], home, env);
+		expect(version.code, version.stderr).toBe(0);
+		expect(JSON.parse(version.stdout).version).toStartWith(
+			`${PACKAGE.version}+`,
+		);
+	},
+);

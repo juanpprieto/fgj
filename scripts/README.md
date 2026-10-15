@@ -15,6 +15,8 @@ these scripts do not ship to consumers.
 - [`build.ts`](build.ts) builds `dist/fgj` with the version stamped in: the package version, the
   git sha, and `-dirty` for a changed tree. `--bundle` builds `dist/cli.js` for Bun
   instead. Both forms keep the same version stamp.
+  Native macOS builds on a Mac use local ad-hoc signing and verify the final bytes.
+  That signature does not identify a publisher or provide Apple notarization.
 - [`package.ts`](package.ts) (`bun run package`) builds a Bun bundle before packing
   `dist/fgj-<version>.tgz`. A temporary staging directory allows only the bundle,
   a script-free manifest, an installation guide and both licenses. The command

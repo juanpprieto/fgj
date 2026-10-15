@@ -76,6 +76,27 @@ if (build.exitCode !== 0) {
 	console.error(build.stderr.toString());
 	process.exit(build.exitCode ?? 1);
 }
+// Compilation changes the Mach-O bytes after Bun's linker signature. Sign the final bytes locally.
+if (
+	!bundle &&
+	process.platform === "darwin" &&
+	(!target || target.startsWith("bun-darwin"))
+) {
+	for (const argv of [
+		["/usr/bin/codesign", "--force", "--sign", "-", outfile],
+		["/usr/bin/codesign", "--verify", "--strict", outfile],
+	]) {
+		const signed = Bun.spawnSync(argv, {
+			cwd: ROOT,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		if (signed.exitCode !== 0) {
+			console.error(signed.stderr.toString().trim());
+			process.exit(signed.exitCode ?? 1);
+		}
+	}
+}
 console.log(
 	JSON.stringify({ outfile, version, bytes: Bun.file(outfile).size }),
 );
