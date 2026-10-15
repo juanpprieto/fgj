@@ -22,6 +22,7 @@
 		"docs:verbs": "bun scripts/readme-verbs.ts",
 		"build": "bun scripts/build.ts",
 		"package": "bun scripts/package.ts",
+		"package:native": "bun scripts/package-native.ts",
 		"install:local": "bun scripts/install-local.ts",
 		"install:uat": "bun scripts/install-uat.ts",
 		"uat:shell": "bun scripts/uat-shell.ts",

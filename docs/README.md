@@ -10,4 +10,6 @@ routes, permissions, templates and the proposed REST API.
 [`release.md`](release.md) describes build, staging and provenance requirements.
 [`github-validation.md`](github-validation.md) describes hosted-run, contributor approval and merge-protection checks.
 [`setup.md`](setup.md) owns additional user setup and installation alternatives.
+[`native.md`](native.md) owns local native candidate checks and their current proof limits.
+[`bun-license.md`](bun-license.md) preserves pinned upstream runtime license information, not compliance approval.
 Code and tests do not live here.
