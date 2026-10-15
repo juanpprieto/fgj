@@ -30,6 +30,9 @@ invalid package metadata and absent or corrupt bundles. It prints the platform,
 runtime versions, full commit, inventory and archive SHA-256. A final digest check
 makes sure that no suite member changes the reviewed archive. Packaging failure
 tests use separate fixture roots, so they cannot replace that archive.
+[`unit/native-package.test.ts`](unit/native-package.test.ts) checks host-only native candidates in synthetic clean Git checkouts.
+It verifies both license texts, the runtime reference, version and source identity, archive digests and execution without other runtimes on PATH.
+These local candidate checks do not establish hosted builds, release approval or runtime license compliance.
 [`unit/public.test.ts`](unit/public.test.ts) scans the archive and generated help,
 rules and skill. It checks synthetic scan markers, retained licenses, complete review
 rows, exact tree exports, poisoned local-file exclusion and one fresh root without remotes.

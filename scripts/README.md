@@ -17,6 +17,12 @@ these scripts do not ship to consumers.
   instead. Both forms keep the same version stamp.
   Native macOS builds on a Mac use local ad-hoc signing and verify the final bytes.
   That signature does not identify a publisher or provide Apple notarization.
+- [`package-native.ts`](package-native.ts) (`bun run package:native`) prepares a local native candidate on macOS arm64 or Linux arm64 with glibc.
+  It archives the current host executable, both fgj licenses, the Bun license reference and a candidate guide.
+  It verifies extracted bytes, execute permission, help and version with an empty PATH.
+  It records source and runtime revisions, normalizes archive ownership and writes SHA-256 checksums.
+  It refuses existing candidates and release flags. It never uploads, publishes or changes the shared installation.
+  See [native candidates](../docs/native.md) for proof limits and pending runtime license qualification.
 - [`package.ts`](package.ts) (`bun run package`) builds a Bun bundle before packing
   `dist/fgj-<version>.tgz`. A temporary staging directory allows only the bundle,
   a script-free manifest, an installation guide and both licenses. The command
