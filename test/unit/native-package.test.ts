@@ -189,16 +189,21 @@ test("an existing candidate remains unchanged after a refused replacement", () =
 	expect(readFileSync(`${candidate.tarball}.sha256`, "utf8")).toBe(checksum);
 });
 
-test("an untracked source change fails before creating an output directory", () => {
-	const home = fixture();
-	writeFileSync(join(home, "unexpected.txt"), "unreviewed source");
-	const result = run([process.execPath, "scripts/package-native.ts"], home);
-	expect(result.code).toBe(1);
-	expect(result.stderr).toContain(
-		"Native packaging requires a clean Git checkout.",
-	);
-	expect(existsSync(join(home, "dist"))).toBe(false);
-});
+test.each(["normal", "hidden"])(
+	"an untracked source change fails before creating output when Git visibility is %s",
+	(visibility) => {
+		const home = fixture();
+		if (visibility === "hidden")
+			ok(["git", "config", "status.showUntrackedFiles", "no"], home);
+		writeFileSync(join(home, "unexpected.txt"), "unreviewed source");
+		const result = run([process.execPath, "scripts/package-native.ts"], home);
+		expect(result.code).toBe(1);
+		expect(result.stderr).toContain(
+			"Native packaging requires a clean Git checkout.",
+		);
+		expect(existsSync(join(home, "dist"))).toBe(false);
+	},
+);
 
 test.each(["--release", "--target", "--publish", "--outfile"])(
 	"the local-only packer refuses %s",
