@@ -59,7 +59,7 @@ function sha256(path: string): string {
 }
 
 function cleanSource(): string {
-	if (run(["git", "status", "--porcelain"]).trim())
+	if (run(["git", "status", "--porcelain", "--untracked-files=all"]).trim())
 		throw new Error("Native packaging requires a clean Git checkout.");
 	const head = run(["git", "rev-parse", "HEAD"]).trim();
 	if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(head))
