@@ -5,6 +5,13 @@ Source: [Bun 1.3.14 LICENSE.md](https://github.com/oven-sh/bun/blob/bun-v1.3.14/
 This reference preserves the upstream license information for the embedded runtime.
 It is not a complete linked-library notice bundle or a license-compliance approval.
 Verify notices, source availability and relinking requirements before public native distribution.
+The pinned runtime revision is `0d9b296af33f2b851fcbf4df3e9ec89751734ba4`.
+Its [build definition](https://github.com/oven-sh/bun/blob/0d9b296af33f2b851fcbf4df3e9ec89751734ba4/scripts/build/deps/webkit.ts) pins WebKit to `5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b`.
+The pinned Bun release has no separate license, notice or source asset.
+Before distribution, assemble the applicable copyright notices, license texts and corresponding runtime sources with patches and build instructions.
+[LGPL 2.1 section 6](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html#section6) describes source or object materials that permit modification and relinking.
+Have the actual distribution reviewed against the licenses that apply to its components. A list of upstream links does not establish compliance.
+Do not create a written source offer without owner approval. Such an offer can create a multi-year obligation.
 fgj retains its own MIT OR Apache-2.0 license choice.
 
 ## Upstream license information

@@ -1,5 +1,14 @@
 import { expect, test } from "bun:test";
-import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+	copyFileSync,
+	mkdirSync,
+	readFileSync,
+	realpathSync,
+	renameSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
 	createIssue,
@@ -66,6 +75,56 @@ async function terminal(
 	}
 }
 
+function installNative(tarball: string, home: string): string {
+	const checksum =
+		readFileSync(`${tarball}.sha256`, "utf8").split(/\s+/)[0] ?? "";
+	expect(checksum).toMatch(/^[a-f0-9]{64}$/);
+	expect(createHash("sha256").update(readFileSync(tarball)).digest("hex")).toBe(
+		checksum,
+	);
+	const extracted = join(home, "candidate");
+	mkdirSync(extracted);
+	const result = Bun.spawnSync(["tar", "-xzf", tarball, "-C", extracted]);
+	expect(result.exitCode, result.stderr.toString()).toBe(0);
+	const bin = join(home, "bin");
+	mkdirSync(bin);
+	// Only system tools needed by the terminal and Git are available to fgj.
+	for (const tool of ["sh", "cat", "script", "git"])
+		symlinkSync(Bun.which(tool) as string, join(bin, tool));
+	for (const runtime of ["bun", "node", "npm"])
+		expect(Bun.which(runtime, { PATH: bin })).toBeNull();
+	const previous = process.env.FGJ_NATIVE_PREVIOUS_TARBALL;
+	if (previous) {
+		const old = join(home, "previous");
+		mkdirSync(old);
+		expect(Bun.spawnSync(["tar", "-xzf", previous, "-C", old]).exitCode).toBe(
+			0,
+		);
+		copyFileSync(join(old, "fgj"), join(bin, "fgj"));
+		const oldVersion = Bun.spawnSync([join(bin, "fgj"), "version"], {
+			env: { ...cleanEnv(home), PATH: bin },
+		});
+		expect(oldVersion.exitCode).toBe(0);
+		const newVersion = Bun.spawnSync([join(extracted, "fgj"), "version"], {
+			env: { ...cleanEnv(home), PATH: bin },
+		});
+		expect(newVersion.exitCode).toBe(0);
+		expect(oldVersion.stdout.toString()).not.toBe(newVersion.stdout.toString());
+	}
+	copyFileSync(join(extracted, "fgj"), join(bin, "fgj.next"));
+	renameSync(join(bin, "fgj.next"), join(bin, "fgj"));
+	expect(
+		createHash("sha256")
+			.update(readFileSync(join(bin, "fgj")))
+			.digest("hex"),
+	).toBe(
+		createHash("sha256")
+			.update(readFileSync(join(extracted, "fgj")))
+			.digest("hex"),
+	);
+	return bin;
+}
+
 test("the README user commands install, authenticate, configure a harness and read the intended repository", async () => {
 	const server = await loadServer();
 	const repo = await createRepo(server);
@@ -81,14 +140,18 @@ test("the README user commands install, authenticate, configure a harness and re
 	);
 	expect(blocks).toHaveLength(5);
 	let tarball = process.env.FGJ_PACKAGE_TARBALL;
-	if (!tarball) {
+	if (!tarball && !process.env.FGJ_NATIVE_TARBALL) {
 		const packed = Bun.spawnSync([process.execPath, "scripts/package.ts"], {
 			cwd: ROOT,
 		});
 		expect(packed.exitCode).toBe(0);
 		tarball = JSON.parse(packed.stdout.toString().trim()).tarball;
 	}
-	for (const harness of ["claude", "codex"]) {
+	for (const harness of [
+		"claude",
+		"codex",
+		...(process.env.FGJ_NATIVE_TARBALL ? ["pi"] : []),
+	]) {
 		const home = join(
 			tempDir(`fgj-start-${harness}-`),
 			"directory with spaces",
@@ -102,18 +165,31 @@ test("the README user commands install, authenticate, configure a harness and re
 			BUN_INSTALL_CACHE_DIR: join(home, "cache"),
 			PATH: `${install}/bin:${process.env.PATH ?? ""}`,
 		};
-		copyFileSync(tarball as string, join(home, "fgj-0.1.0.tgz"));
-		for (const command of [blocks[0]?.[0], "bun pm bin -g", blocks[0]?.[1]]) {
-			const result = Bun.spawnSync(["sh", "-ec", command as string], {
-				cwd: home,
-				env,
-			});
-			expect(
-				result.exitCode,
-				`The documented ${harness} installation command must succeed.`,
-			).toBe(0);
+		if (process.env.FGJ_NATIVE_TARBALL) {
+			env.PATH = installNative(process.env.FGJ_NATIVE_TARBALL, home);
+			writeFileSync(join(home, ".env"), "FGJ_PROFILE=hostile\n");
+			writeFileSync(
+				join(home, "preload.ts"),
+				'throw new Error("hostile preload ran");\n',
+			);
+			writeFileSync(join(home, "bunfig.toml"), 'preload = ["./preload.ts"]\n');
+			writeFileSync(join(home, ".bunfig.toml"), 'preload = ["./preload.ts"]\n');
+		} else {
+			copyFileSync(tarball as string, join(home, "fgj-0.1.0.tgz"));
+			for (const command of [blocks[0]?.[0], "bun pm bin -g", blocks[0]?.[1]]) {
+				const result = Bun.spawnSync(["sh", "-ec", command as string], {
+					cwd: home,
+					env,
+				});
+				expect(
+					result.exitCode,
+					`The documented ${harness} installation must succeed.`,
+				).toBe(0);
+			}
+			expect(Bun.which("fgj", { PATH: env.PATH })).toBe(
+				join(install, "bin/fgj"),
+			);
 		}
-		expect(Bun.which("fgj", { PATH: env.PATH })).toBe(join(install, "bin/fgj"));
 		const auth = String(blocks[1]?.[0]).replace(
 			"https://your-forgejo.example",
 			server.url,
@@ -131,6 +207,22 @@ test("the README user commands install, authenticate, configure a harness and re
 			await terminal(String(block?.[0]).replace("claude", harness), env, [
 				["[y/N]", "y"],
 			]);
+		}
+		if (process.env.FGJ_NATIVE_TARBALL && harness === "pi") {
+			const adapter = readFileSync(
+				join(home, ".pi/agent/extensions/fgj-gate.ts"),
+				"utf8",
+			);
+			const callback = JSON.parse(
+				/^const FGJ: string\[\] = (.+);$/m.exec(adapter)?.[1] ?? "null",
+			) as string[];
+			expect(callback).toEqual([realpathSync(join(home, "bin/fgj"))]);
+			const replay = Bun.spawnSync([...callback, "auth", "status"], {
+				cwd: home,
+				env,
+			});
+			expect(replay.exitCode, replay.stderr.toString()).toBe(0);
+			expect(replay.stdout.toString()).not.toContain("hostile");
 		}
 		const firstRead = String(blocks[4]?.[0]).replace(
 			"owner/repository",

@@ -71,8 +71,36 @@ Use the candidate path until the maintainer approves a permanent installation.
 ```
 
 Check the account, repository and returned `as` value before any write.
-Permanent installation, native harness callbacks, replacement and the complete download-to-first-read path still need validation.
+The setup test supports reviewed native archives, isolated replacement and all three harness installations.
+Hosted download proof and a human acceptance run remain separate requirements.
 The [additional setup guide](setup.md) covers account bindings and other harnesses.
+
+## Isolated installation and harness setup
+
+After archive verification, install into a directory that you own.
+These commands replace an earlier installation at that path. They do not select a system-wide installation.
+
+```sh
+mkdir -p "$HOME/.local/bin"
+install -m 755 ./candidate/fgj "$HOME/.local/bin/fgj.next"
+mv "$HOME/.local/bin/fgj.next" "$HOME/.local/bin/fgj"
+export PATH="$HOME/.local/bin:$PATH"
+fgj version
+```
+
+Run the account commands above with the installed executable.
+Then install the rules and skill for your harness at a human terminal:
+
+```sh
+fgj rules install claude
+fgj skill install claude
+fgj rules status
+fgj skill status
+```
+
+Replace `claude` with `codex` or `pi` for those harnesses. Review each proposed change before you confirm it.
+For pi, keep the installation path fixed. Its generated callback names the installed executable.
+Do not move that executable after setup without reinstalling the pi rules.
 
 ## Maintainer preparation
 
@@ -93,3 +121,28 @@ The archive is a local candidate, not a release artifact approved for distributi
 Before public distribution, verify the pinned [Bun runtime license reference](bun-license.md), linked-library notices and relinking requirements.
 That review must cover the actual compiled runtime. The reference alone does not establish license compliance.
 Keep this review separate from fgj's MIT OR Apache-2.0 license choice.
+
+
+## Private hosted rehearsal
+
+Keep the repository private. Obtain owner approval before enabling Actions or starting a run.
+Disable the contributor and npm release workflows before enabling the reviewed native rehearsal.
+Use the existing full-SHA action allowlist and read-only workflow token settings.
+
+The manual `native-rehearsal` workflow accepts one approved full commit from `main`.
+Both jobs build once, retain private artifacts for seven days and download their artifact by immutable ID.
+Each job has a 20-minute limit. Neither job creates a tag, publishes a release or requests OIDC.
+The Linux job tests the downloaded archive against the disposable Forgejo.
+The Mac job checks startup and signatures. Run its downloaded archive against the local disposable Mac fixture without rebuilding.
+
+Reuse the existing setup test with `FGJ_NATIVE_TARBALL` set to the absolute downloaded archive path.
+Set `FGJ_NATIVE_PREVIOUS_TARBALL` to an earlier reviewed archive for replacement proof.
+Keep the matching `.sha256` file beside the candidate archive.
+These tests use private homes and system tools only on fgj's PATH.
+They automate terminal answers, verify the selected profile and repository, and replay the installed pi callback.
+They do not launch authenticated model sessions or replace human acceptance.
+
+A rehearsal has no version tag and does not approve distribution.
+Before release, resolve runtime license materials, select an approved version tag and bind final artifacts to that tag.
+Retain the run identifier, attempt, source commit, workflow commit and both platform digests in the release record.
+Do not repeat passed checks for unchanged candidates. Test changed behavior and keep the repository-required checks.

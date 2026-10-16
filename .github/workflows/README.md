@@ -9,6 +9,12 @@ It does not stage or publish packages. The [release guide](../../docs/release.md
 It defaults to credential-free dry-run, tests one archive on Linux and macOS, and limits OIDC to protected staging.
 It does not activate GitHub protections, npm trust or public release authority.
 
+[`native-rehearsal.yml`](native-rehearsal.yml) builds private native candidates only after manual owner dispatch.
+Each arm64 job has a 20-minute limit, a read-only token and no publication step.
+It binds the source to the approved main commit, uploads once and downloads that exact artifact by immutable ID.
+Linux tests the downloaded executable against the disposable Forgejo. The downloaded Mac archive needs the local Mac server test.
+This rehearsal uses no version tag and does not establish release approval or runtime license compliance.
+
 ## Contributor checks
 
 The Linux arm64 job runs full source, real-server and harness checks.
