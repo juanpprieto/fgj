@@ -223,6 +223,18 @@ test("the README user commands install, authenticate, configure a harness and re
 			});
 			expect(replay.exitCode, replay.stderr.toString()).toBe(0);
 			expect(replay.stdout.toString()).not.toContain("hostile");
+			for (const [command, action] of [
+				["fgj read issue get 1", "pass"],
+				["fgj destroy comment delete 1", "ask"],
+			]) {
+				const hook = Bun.spawnSync([...callback, "hook", "pi"], {
+					cwd: home,
+					env,
+					stdin: Buffer.from(JSON.stringify({ command })),
+				});
+				expect(hook.exitCode, hook.stderr.toString()).toBe(0);
+				expect(JSON.parse(hook.stdout.toString()).action).toBe(action);
+			}
 		}
 		const firstRead = String(blocks[4]?.[0]).replace(
 			"owner/repository",

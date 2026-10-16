@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanEnv, tempDir } from "../support/tmp.ts";
 
 const ROOT = join(import.meta.dir, "../..");
 const CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803";
@@ -504,3 +505,48 @@ test("native rehearsal stays private, manual, read-only and bounded", () => {
 		"always() && runner.os == 'Linux'",
 	);
 });
+
+test.each([false, true])(
+	"native download verification executes with corrupt=%s",
+	async (corrupt) => {
+		const native = Bun.YAML.parse(
+			readFileSync(
+				join(ROOT, ".github/workflows/native-rehearsal.yml"),
+				"utf8",
+			),
+		) as { jobs: { native: Job } };
+		const script = step(
+			native.jobs.native,
+			"Verify downloaded bytes and native startup",
+		).run as string;
+		const code = /bun -e '([\s\S]*?)'/.exec(script)?.[1] as string;
+		const home = tempDir("fgj-native-download-");
+		const name = "candidate.tar.gz";
+		const bytes = "synthetic archive bytes";
+		const sha = Bun.CryptoHasher.hash("sha256", bytes, "hex");
+		await Bun.write(join(home, name), corrupt ? "changed bytes" : bytes);
+		await Bun.write(
+			join(home, "candidate.json"),
+			JSON.stringify({
+				sha256: sha,
+				source_sha: "source",
+				workflow_sha: "source",
+				run_id: "1",
+				run_attempt: "1",
+			}),
+		);
+		const result = Bun.spawnSync([process.execPath, "-e", code], {
+			cwd: home,
+			env: {
+				...cleanEnv(home),
+				CANDIDATE_NAME: name,
+				CANDIDATE_SHA256: sha,
+				EXPECTED_SHA: "source",
+				GITHUB_WORKFLOW_SHA: "source",
+				GITHUB_RUN_ID: "1",
+				GITHUB_RUN_ATTEMPT: "1",
+			},
+		});
+		expect(result.exitCode, result.stderr.toString()).toBe(corrupt ? 1 : 0);
+	},
+);

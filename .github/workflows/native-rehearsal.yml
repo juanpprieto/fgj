@@ -95,7 +95,7 @@ jobs:
           bun -e '
             const p = await Bun.file("candidate.json").json();
             const { createHash } = await import("node:crypto");
-            const digest = createHash("sha256").update(await Bun.file(process.env.CANDIDATE_NAME).arrayBuffer()).digest("hex");
+            const digest = createHash("sha256").update(new Uint8Array(await Bun.file(process.env.CANDIDATE_NAME).arrayBuffer())).digest("hex");
             if (digest !== process.env.CANDIDATE_SHA256 || digest !== p.sha256 || p.source_sha !== process.env.EXPECTED_SHA || p.workflow_sha !== process.env.GITHUB_WORKFLOW_SHA || p.run_id !== process.env.GITHUB_RUN_ID || p.run_attempt !== process.env.GITHUB_RUN_ATTEMPT) process.exit(1);
           '
           mkdir extracted empty-path
