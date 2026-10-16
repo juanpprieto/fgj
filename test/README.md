@@ -44,6 +44,11 @@ Synthetic markers do not replace a per-path disclosure review.
 [`server/getting-started.test.ts`](server/getting-started.test.ts) executes the documented Bun installation,
 human-terminal authentication, Claude Code and Codex setup, and a first read in private homes.
 It uses the disposable Forgejo, not a production account or a source checkout for user calls.
+Set `FGJ_NATIVE_TARBALL` to a reviewed native archive to reuse that setup test without Bun, Node.js or npm on the child PATH.
+This route verifies the archive checksum, isolated installation, two-token authentication and all three harness installations.
+It replays the installed pi callback and reads the intended repository with the selected profile under hostile startup files.
+Set `FGJ_NATIVE_PREVIOUS_TARBALL` to an earlier reviewed archive to test replacement at the same installation path.
+The test automates terminal answers in disposable homes. It does not claim a human performed acceptance or that real harness sessions ran.
 Set `FGJ_PACKAGE_TARBALL` to an absolute archive path to reuse exact reviewed bytes.
 Without it, the tests build an archive. Compare the printed hashes across macOS
 arm64 and Linux arm64 before acceptance. Use Bun 1.3.14 in both environments.

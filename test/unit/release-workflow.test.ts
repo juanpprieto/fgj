@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanEnv, tempDir } from "../support/tmp.ts";
 
 const ROOT = join(import.meta.dir, "../..");
 const CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803";
@@ -438,3 +439,114 @@ describe("manual release workflow", () => {
 		expect(() => safeRelease(input)).toThrow();
 	});
 });
+
+test("native rehearsal stays private, manual, read-only and bounded", () => {
+	const native = Bun.YAML.parse(
+		readFileSync(join(ROOT, ".github/workflows/native-rehearsal.yml"), "utf8"),
+	) as {
+		on: Record<string, unknown>;
+		permissions: Record<string, string>;
+		jobs: Record<
+			string,
+			Job & {
+				strategy: {
+					matrix: { include: { runner: string; platform: string }[] };
+				};
+			}
+		>;
+	};
+	expect(Object.keys(native.on)).toEqual(["workflow_dispatch"]);
+	expect(native.permissions).toEqual({ contents: "read" });
+	expect(Object.keys(native.jobs)).toEqual(["native"]);
+	const job = native.jobs.native as NonNullable<typeof native.jobs.native>;
+	expect(job.if).toBe(
+		"github.event.repository.private && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner",
+	);
+	expect(job.permissions).toEqual({ contents: "read" });
+	expect(job["timeout-minutes"]).toBe(20);
+	expect(job.strategy.matrix.include).toEqual([
+		{ runner: "ubuntu-24.04-arm", platform: "linux-arm64" },
+		{ runner: "macos-15", platform: "macos-arm64" },
+	]);
+	for (const item of job.steps) {
+		expect(item["continue-on-error"]).toBeUndefined();
+		if (item.uses)
+			expect([CHECKOUT, NODE, UPLOAD, DOWNLOAD]).toContain(item.uses);
+	}
+	expect(step(job, "Checkout approved source").with).toEqual({
+		ref: expression("github.sha"),
+		"fetch-depth": 0,
+		"persist-credentials": false,
+	});
+	const guard = step(job, "Check source identity").run;
+	for (const check of [
+		'test "$GITHUB_REF" = refs/heads/main',
+		'test "$EXPECTED_SHA" = "$GITHUB_SHA"',
+		'test "$GITHUB_WORKFLOW_SHA" = "$GITHUB_SHA"',
+		'git merge-base --is-ancestor "$EXPECTED_SHA" origin/main',
+	])
+		expect(guard).toContain(check);
+	expect(step(job, "Download the exact uploaded artifact").with).toEqual({
+		"artifact-ids": expression("steps.archive.outputs.artifact-id"),
+		path: `${expression("runner.temp")}/downloaded-native`,
+		"digest-mismatch": "error",
+	});
+	expect(step(job, "Retain private candidate").with?.["retention-days"]).toBe(
+		7,
+	);
+	expect(step(job, "Retain private candidate").with?.overwrite).toBe(false);
+	expect(step(job, "Verify downloaded bytes and native startup").run).toContain(
+		"process.env.CANDIDATE_SHA256",
+	);
+	expect(step(job, "Test native setup and first read on Linux").run).toContain(
+		"bun test test/server/getting-started.test.ts",
+	);
+	expect(step(job, "Stop owned Linux fixture").if).toBe(
+		"always() && runner.os == 'Linux'",
+	);
+});
+
+test.each([false, true])(
+	"native download verification executes with corrupt=%s",
+	async (corrupt) => {
+		const native = Bun.YAML.parse(
+			readFileSync(
+				join(ROOT, ".github/workflows/native-rehearsal.yml"),
+				"utf8",
+			),
+		) as { jobs: { native: Job } };
+		const script = step(
+			native.jobs.native,
+			"Verify downloaded bytes and native startup",
+		).run as string;
+		const code = /bun -e '([\s\S]*?)'/.exec(script)?.[1] as string;
+		const home = tempDir("fgj-native-download-");
+		const name = "candidate.tar.gz";
+		const bytes = "synthetic archive bytes";
+		const sha = Bun.CryptoHasher.hash("sha256", bytes, "hex");
+		await Bun.write(join(home, name), corrupt ? "changed bytes" : bytes);
+		await Bun.write(
+			join(home, "candidate.json"),
+			JSON.stringify({
+				sha256: sha,
+				source_sha: "source",
+				workflow_sha: "source",
+				run_id: "1",
+				run_attempt: "1",
+			}),
+		);
+		const result = Bun.spawnSync([process.execPath, "-e", code], {
+			cwd: home,
+			env: {
+				...cleanEnv(home),
+				CANDIDATE_NAME: name,
+				CANDIDATE_SHA256: sha,
+				EXPECTED_SHA: "source",
+				GITHUB_WORKFLOW_SHA: "source",
+				GITHUB_RUN_ID: "1",
+				GITHUB_RUN_ATTEMPT: "1",
+			},
+		});
+		expect(result.exitCode, result.stderr.toString()).toBe(corrupt ? 1 : 0);
+	},
+);
