@@ -4,6 +4,30 @@ This reference describes release builds, protected staging and provenance checks
 Repository settings and npm permissions require runtime verification.
 Maintainers must review and approve release actions before execution.
 
+## Native prerelease
+
+The first public native release is a manually approved GitHub prerelease, not an npm publication.
+Use [native installation](native.md) for user instructions.
+The remaining npm sections describe a separate, inactive publication path.
+`package.json` remains `private: true` to prevent accidental npm publication.
+
+Tag `v0.1.0` must identify application commit `1924e9a8221707e0aa16868df75189ad186836bc`.
+All three tested executables report `0.1.0+1924e9a`.
+Later documentation commits on `main` do not change that application source identity.
+Keep GitHub's prerelease flag enabled. The flag does not change the embedded version string.
+
+The release record must identify each archive, executable digest, source commit, runtime revision and proof method.
+The arm64 executables came from the same hosted rehearsal. Linux x64 used the same source and a separate native acceptance run.
+Do not describe the x64 executable as a hosted build or claim manual harness acceptance for it.
+
+The public archives add current installation and rebuild instructions, notices, LGPL texts and the exact application source to unchanged executables.
+Check the final archive inventory and checksum after packaging.
+Compare extracted executable digests with the tested originals.
+Retain existing executable proof when those digests match. Do not rebuild only to update documentation.
+
+Keep automatic publishing disabled. An approved tag or public repository does not authorize npm staging or publication.
+The native release does not claim npm provenance, Apple notarization or a complete third-party license audit.
+
 ## npm requirements
 
 Primary sources checked on **2026-10-05**:

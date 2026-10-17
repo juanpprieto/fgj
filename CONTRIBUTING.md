@@ -1,7 +1,7 @@
 # Contributing to fgj
 
 fgj provides generic Forgejo operations for coding agents.
-Use the repository that supplied this checkout for contributions.
+Use [GitHub issues](https://github.com/juanpprieto/fgj/issues) and [pull requests](https://github.com/juanpprieto/fgj/pulls) for contributions.
 Read the [design](docs/design.md) before a change.
 
 ## Start a change
@@ -9,11 +9,21 @@ Read the [design](docs/design.md) before a change.
 Use a dedicated checkout with Bun **1.3.14** and Git on PATH.
 `mise.toml` pins Bun if you use mise. No private Forgejo account is required.
 
+Clone the source into a new directory:
+
+```sh
+git clone https://github.com/juanpprieto/fgj.git
+cd fgj
+```
+
 Install the locked development dependencies:
 
 ```sh
 bun install --frozen-lockfile
 ```
+
+Dependency installation also configures this checkout's Git hooks through the `prepare` script.
+It does not install fgj globally or change your agent harness settings.
 
 Run fgj directly from source:
 
@@ -58,7 +68,7 @@ A success without the real Codex and pi tests is not complete harness proof.
 ## Report a defect or propose a change
 
 First check existing reports. Include the expected behavior, actual behavior, fgj version and a small reproduction.
-Include the operating system, architecture and Bun version.
+Include the operating system, architecture and the output of `fgj version`. Include the Bun version only for a source or npm candidate.
 Remove tokens, cookies, private hosts and personal paths from logs.
 Use [SECURITY.md](SECURITY.md) instead of a public issue for a vulnerability.
 

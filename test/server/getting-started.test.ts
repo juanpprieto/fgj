@@ -125,7 +125,7 @@ function installNative(tarball: string, home: string): string {
 	return bin;
 }
 
-test("the README user commands install, authenticate, configure a harness and read the intended repository", async () => {
+test("the README user commands check startup, authenticate, configure a harness and read the intended repository", async () => {
 	const server = await loadServer();
 	const repo = await createRepo(server);
 	await createIssue(server, repo, "Getting started smoke");
@@ -176,19 +176,29 @@ test("the README user commands install, authenticate, configure a harness and re
 			writeFileSync(join(home, ".bunfig.toml"), 'preload = ["./preload.ts"]\n');
 		} else {
 			copyFileSync(tarball as string, join(home, "fgj-0.1.0.tgz"));
-			for (const command of [blocks[0]?.[0], "bun pm bin -g", blocks[0]?.[1]]) {
+			for (const command of [
+				'bun add --global --ignore-scripts "$PWD/fgj-0.1.0.tgz"',
+				"bun pm bin -g",
+			]) {
 				const result = Bun.spawnSync(["sh", "-ec", command as string], {
 					cwd: home,
 					env,
 				});
 				expect(
 					result.exitCode,
-					`The documented ${harness} installation must succeed.`,
+					`The fixture ${harness} installation must succeed.`,
 				).toBe(0);
 			}
 			expect(Bun.which("fgj", { PATH: env.PATH })).toBe(
 				join(install, "bin/fgj"),
 			);
+		}
+		for (const command of blocks[0] ?? []) {
+			const result = Bun.spawnSync(["sh", "-ec", command], { cwd: home, env });
+			expect(
+				result.exitCode,
+				"The documented startup commands must succeed.",
+			).toBe(0);
 		}
 		const auth = String(blocks[1]?.[0]).replace(
 			"https://your-forgejo.example",

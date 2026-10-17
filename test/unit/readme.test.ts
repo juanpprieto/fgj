@@ -55,3 +55,21 @@ test("GitHub selects the root README rather than a directory guide", async () =>
 	expect(githubReadmes).toEqual([]);
 	expect(files).toContain("README.md");
 });
+
+test("the public quick start leads to native downloads before account setup", () => {
+	const root = join(import.meta.dir, "../..");
+	const readme = readFileSync(join(root, "README.md"), "utf8");
+	const start =
+		readme
+			.split("<!-- getting-started:start -->")[1]
+			?.split("<!-- getting-started:end -->")[0] ?? "";
+	expect(readme).toContain("/releases/tag/v0.1.0");
+	expect(start).toContain("docs/native.md");
+	expect(start).toContain("1. Install the matching [native download]");
+	expect(start).toContain("fgj version\n   fgj help");
+	const native = readFileSync(join(root, "docs/native.md"), "utf8");
+	for (const platform of ["macos-arm64", "linux-arm64", "linux-x64"])
+		expect(native).toContain(`fgj-0.1.0-${platform}.tar.gz`);
+	expect(native).toContain("sha256sum -c");
+	expect(native).toContain("shasum -a 256 -c");
+});

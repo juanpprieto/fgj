@@ -266,7 +266,7 @@ describe("public repository", () => {
 		expect(pkg.scripts["check:local"]).toBe("bun scripts/check.ts --local");
 	});
 
-	test("shared source uses neutral examples outside public identity metadata", () => {
+	test("shared source uses neutral examples outside public identity metadata and links", () => {
 		const metadata = JSON.parse(
 			readFileSync(join(ROOT, "package.json"), "utf8"),
 		);
@@ -285,8 +285,16 @@ describe("public repository", () => {
 			);
 		for (const [path, bytes] of snapshotFiles(ROOT, paths)) {
 			if (bytes.includes(0)) continue;
-			for (const marker of markers)
-				expect(bytes.toString(), path).not.toContain(marker);
+			const text = path.endsWith(".md")
+				? bytes
+						.toString()
+						.replaceAll(`https://github.com/${slug}/`, "PUBLIC_REPOSITORY/")
+						.replaceAll(
+							`https://github.com/${slug}.git`,
+							"PUBLIC_REPOSITORY.git",
+						)
+				: bytes.toString();
+			for (const marker of markers) expect(text, path).not.toContain(marker);
 		}
 		expect(readFileSync(join(ROOT, "README.md"), "utf8")).toContain(
 			"synthetic test issue",
