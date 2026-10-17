@@ -19,20 +19,24 @@ Each result is one line of compact JSON that names the Forgejo account that acte
 | A human who runs it | [Get started](#get-started) | Store one account per agent role, and install the harness rules. |
 | An agent | `fgj help`, the [agent skill](skill/fgj/SKILL.md) | Find the command, write the call, and read the result. |
 
-Status: early, and in daily use by a team of agents. The tests run against Forgejo
-16.0.5. The 0.1.0 npm candidate is a local tarball, not a registry release.
+Status: early prerelease, tested against Forgejo **16.0.5**.
+Download [v0.1.0](https://github.com/juanpprieto/fgj/releases/tag/v0.1.0) for macOS arm64 or Linux arm64/x64 with glibc.
+There is no npm registry release. Native downloads do not need Bun, Node.js or npm.
 
 <!-- getting-started:start -->
 ## Get started
 
-Use Bun **1.3.14**, Git, Claude Code and one Forgejo account for your agent.
-The candidate supports macOS arm64 and Linux arm64, not Windows or other architectures.
-Put Bun and its global binary directory on PATH. `bun pm bin -g` shows the global directory.
+You need Git, a Forgejo account, and Claude Code, Codex or pi.
+Use a dedicated Forgejo account for your agent, not your personal administrator account.
+fgj works with Forgejo. GitHub hosts this project's source and downloads, not your agent's target repository.
 
-1. Install the reviewed `fgj-0.1.0.tgz` supplied by your maintainer:
+1. Install the matching [native download](https://github.com/juanpprieto/fgj/blob/main/docs/native.md), then check the executable:
+
+   For a maintainer-supplied npm candidate only, keep Bun **1.3.14** on PATH.
+   Use `bun add --global --ignore-scripts "$PWD/fgj-0.1.0.tgz"` instead of the native installation steps.
 
    ```sh
-   bun add --global --ignore-scripts "$PWD/fgj-0.1.0.tgz"
+   fgj version
    fgj help
    ```
 
@@ -42,9 +46,12 @@ Put Bun and its global binary directory on PATH. `bun pm bin -g` shows the globa
    fgj auth --profile agent https://your-forgejo.example
    ```
 
-   Create a read token and a write token for that account. fgj shows the token page and required scopes.
+   Create two tokens for the same account at **Settings → Applications → Generate New Token** on your Forgejo server.
+   Give the read token `read:issue`, `read:repository` and `read:user` scopes.
+   Give the write token `write:issue`, `write:repository` and `read:user` scopes.
+   Paste tokens only at the hidden terminal prompts, never into an agent conversation.
    Approve the default only if every unbound agent on that host can use this account.
-   The following read uses that approved default. Without a default, configure a harness binding first.
+   The first read below uses that approved default. Without a default, configure a [harness binding](https://github.com/juanpprieto/fgj/blob/main/docs/setup.md#more-than-one-agent-role).
 
 3. Install the Claude Code permission rules. Review and approve the displayed change:
 
@@ -64,17 +71,19 @@ Put Bun and its global binary directory on PATH. `bun pm bin -g` shows the globa
    fgj read issue list --repo owner/repository
    ```
 
+Check that the JSON result names your expected profile in `as`.
 Start a new Claude Code session in your repository after setup.
-For Codex, replace `claude` with `codex` in the two install commands. The other steps stay the same.
-Board commands and Actions reruns need an additional web login, not a source build.
+For Codex or pi, replace `claude` with `codex` or `pi` in the two install commands.
+Board commands and Actions reruns need an additional web login.
 
 Installation, help and version work without Git. Auth and network commands require Git on PATH.
 No source checkout is required. The package has no npm runtime dependencies.
-The candidate has no lifecycle scripts and does not install Git hooks or harness rules automatically.
-The executable ignores ambient `.env` files and Bun preload configuration.
+The native executable includes its runtime and ignores ambient `.env` files and Bun preload configuration.
+It does not install Git hooks or harness rules automatically.
 <!-- getting-started:end -->
 
-See [additional setup](docs/setup.md) for pi, account bindings, web login and npm/npx alternatives.
+See [additional setup](docs/setup.md) for account bindings, web login and troubleshooting.
+See [native installation](docs/native.md) for platform limits, upgrades, removal and macOS security prompts.
 See [release constraints](docs/release.md) for maintainer builds and release approval.
 
 ## Why fgj exists

@@ -74,9 +74,13 @@ It stores only the remember-me cookie, not the password.
 The cookie lasts for the server's `LOGIN_REMEMBER_DAYS`, which defaults to 31.
 A password change revokes it. Do not change the server's lifetime just to complete basic setup.
 
-## npm and npx alternatives
+## Maintainer package testing
 
-Bun 1.3.14 must remain on PATH. These alternatives also need Node.js and npm.
+Native downloads are the normal installation path. There is no published npm package for this project.
+The commands below apply only to a reviewed local `fgj-0.1.0.tgz` from `bun run package`.
+They do not fetch an npm registry release.
+
+Bun 1.3.14 must remain on PATH. The npm alternatives also need Node.js and npm.
 Installation, help and version work without Git.
 Auth and network commands require Git on PATH.
 No source checkout is required.
@@ -113,3 +117,32 @@ fgj skill status
 ```
 
 For command-specific details, use `fgj help auth`, `fgj help rules` and `fgj help skill`.
+
+## Common setup problems
+
+| Result | Action |
+| --- | --- |
+| `fgj: command not found` | Check `command -v fgj` and your shell's PATH. Obey the [native installation steps](native.md). |
+| The version is not the one you installed | Check `command -v fgj` for another installation earlier on PATH. Open a new terminal after a PATH change. |
+| No default profile | At a human terminal, inspect `fgj auth status`. Approve a default only for an account that unbound agents can use. |
+| `identity_mismatch` | Ask the person who configured the harness to check its profile binding. Do not override the binding in an agent command. |
+| More than one Forgejo host | Use the full Forgejo issue URL, or work in the correct Forgejo repository checkout. |
+| `auth` after a board call | Refresh the profile's web login at a human terminal with `fgj auth web --profile agent`. |
+| `risk_mismatch` | Use the command in the error's `hint`. Do not broaden the harness permission rules. |
+
+A first read can return an empty `items` list. That means the repository has no issues matching the request.
+An authorization error is different. Confirm the account's repository access and token scopes before a retry.
+
+## First reversible write
+
+Use a test issue that you own or have permission to change.
+Create `comment.txt` in a text editor with a short test message.
+Replace the URL below with that issue's Forgejo URL:
+
+```sh
+fgj write comment add https://your-forgejo.example/owner/repository/issues/1 --body-file comment.txt
+```
+
+`changed:true` means fgj added the comment.
+`changed:false` means your latest comment already has the same body, so fgj did not add a duplicate.
+Check `as` before further writes. A write token can also delete through other tools, so harness rules are not server-side isolation.
