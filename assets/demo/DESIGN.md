@@ -75,3 +75,7 @@ and narrow-screen controls. The film itself remains a scaled 16:9 composition.
 Export a fresh MP4 and poster whenever the source changes. See [README.md](README.md)
 for the export recipe. Validate the encoded duration, dimensions, and a few decoded
 frames. Keep no draft exports, capture frames, or review history in this directory.
+
+For GitHub, use the hosted attachment's native inline player. Autoplay is not a
+supported README guarantee. Keep the 1440 × 810 master for readable command text;
+check any new compression setting against text-heavy frames, not file size alone.

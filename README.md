@@ -5,9 +5,7 @@
 The Forgejo CLI that helps agent teams make Forgejo their source of truth.
 Agents run it. Humans evaluate it, set it up, and approve the calls that cannot be undone.
 
-[![Watch the fgj workflow: agents share an issue and PR, then hand off to the owner](assets/demo/poster.png)](assets/demo/workflow.mp4)
-
-**[Watch the 62-second workflow](assets/demo/workflow.mp4)** · [Interactive version and transcript](assets/demo/README.md)
+https://github.com/user-attachments/assets/ef4bb96f-0475-4cc6-b95b-d599b76dd9cc
 
 You set scope and priorities. Agents read the issue and latest comments, then post
 progress and handoffs to the shared PR. You review the accumulated work and decide
