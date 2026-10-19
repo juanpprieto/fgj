@@ -5,6 +5,15 @@
 The Forgejo CLI that helps agent teams make Forgejo their source of truth.
 Agents run it. Humans evaluate it, set it up, and approve the calls that cannot be undone.
 
+[![Watch the fgj workflow: agents share an issue and PR, then hand off to the owner](assets/demo/poster.png)](assets/demo/workflow.mp4)
+
+**[Watch the 62-second workflow](assets/demo/workflow.mp4)** · [Interactive version and transcript](assets/demo/README.md)
+
+You set scope and priorities. Agents read the issue and latest comments, then post
+progress and handoffs to the shared PR. You review the accumulated work and decide
+when to merge. Moving work to Ready starts the agents in this example; that is the
+team's rule, not an fgj dispatcher.
+
 ```sh
 $ fgj read issue get 157 --fields number,title,state,labels
 {"number":157,"title":"Login fails after a password reset","state":"open","labels":["type/bug","priority/p1"],"as":"team-lead"}
@@ -321,7 +330,7 @@ compose fgj commands.
 
 ## Develop
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) for a source-development path and one complete local check.
+Read the [agent working agreement](AGENTS.md). Start with [CONTRIBUTING.md](CONTRIBUTING.md) for a source-development path and one complete local check.
 No development step requires a global fgj installation.
 Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>fgj · Shared work, explicit handoffs</title>
+<style>
+:root{color-scheme:dark;--bg:#16171b;--surface:#1a1b20;--ink:#d5d6df;--muted:#a1a3b3;--line:#373943;--accent:#a7b5df;--mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:#111215;color:var(--ink);font:14px/1.5 var(--mono)}::selection{background:var(--accent);color:var(--bg)}a{color:var(--ink);text-underline-offset:4px}a:hover{color:var(--accent)}:focus-visible{outline:2px solid var(--accent);outline-offset:4px}main{max-width:1600px;margin:auto;padding:24px 28px}header{display:flex;justify-content:space-between;align-items:baseline;gap:20px;margin-bottom:20px}h1{font-size:16px;font-weight:500;margin:0 0 5px}header p{font-size:12px;color:var(--muted);margin:0}.viewport{aspect-ratio:16/9;position:relative;overflow:hidden;background:var(--bg);border:1px solid var(--line)}.viewport:fullscreen{width:100vw;height:100vh;aspect-ratio:auto}.frame{position:absolute;width:1440px;height:810px;transform-origin:top left;overflow:hidden;background:var(--bg)}.camera,.browser,.intro{position:absolute;inset:0;transform-origin:0 0;background:var(--bg)}.bar{height:82px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 44px;gap:28px}.forgejo{font-size:19px;font-weight:500}.repo{font-size:16px;color:var(--muted)}.nav{display:flex;gap:24px;font-size:14px;margin-left:20px;color:var(--muted)}.nav .active{color:var(--ink);padding:29px 0;border-bottom:1px solid var(--accent)}.project{position:absolute;left:80px;top:124px;font-size:24px}.board{position:absolute;inset:0}.column{position:absolute;top:200px;width:390px;bottom:40px;padding:16px 18px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}.column:nth-child(1){left:80px}.column:nth-child(2){left:525px}.column:nth-child(3){left:970px}.ghost{position:absolute;left:18px;right:18px;padding:16px 0;font-size:18px;border-bottom:1px solid var(--line)}.ghost small{display:block;font-size:13px}.team-rule{font-size:11px;display:block;margin-top:4px}.issue{position:absolute;left:80px;top:250px;width:390px;height:245px;z-index:3;background:var(--surface);border-top:1px solid var(--accent);overflow:hidden;transform-origin:0 0}.issue-content{padding:23px 27px;width:448px;transform-origin:0 0}.issue-num{font-size:14px;color:var(--muted);display:flex;gap:18px;align-items:center}.priority,.open{font:11px var(--mono);color:var(--ink)}.priority:before,.open:before{content:'['}.priority:after,.open:after{content:']'}.issue h2,.pr h2{font-size:25px;font-weight:500;line-height:1.3;letter-spacing:-.03em;margin:12px 0 15px}.scope-lines{font-size:13px;line-height:1.9;color:var(--muted);margin-top:-4px}.scope-check{margin-right:5px;color:var(--ink)}.ready-tag{font-size:11px;color:var(--ink);margin-top:12px;display:inline-block;border-bottom:1px solid var(--accent);padding:3px 0}.thread{margin-top:18px;padding:17px 0;border-top:1px solid var(--line)}.who{font-size:13px;color:var(--muted);display:flex;gap:9px;align-items:center}.icon{width:8px;height:8px;background:var(--ink);display:inline-block;flex:none}.icon.b{background:transparent;border:1px solid var(--ink);transform:rotate(45deg)}.icon.you{background:transparent;border:1px solid var(--ink)}.thread p{font-size:19px;line-height:1.4;margin:9px 0 0;letter-spacing:-.03em}.thread small{font-size:10px;color:var(--muted);margin-left:auto}.mark{background:var(--ink);color:var(--bg);padding:2px 4px}.org{position:absolute;left:55px;top:105px;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}.org strong{font-size:18px;color:var(--ink);font-weight:500}.org .team-label{font-size:12px}.record-label{position:absolute;left:496px;top:129px;color:var(--muted);font-size:11px;z-index:6}.agent{position:absolute;width:430px;height:445px;top:210px;background:var(--bg);color:var(--ink);overflow:hidden;z-index:4;transform-origin:50% 50%;border-left:1px solid var(--line);border-right:1px solid var(--line)}.agent.a{left:24px}.agent.b{left:986px;top:234px}.agent-header{padding:12px 20px;min-height:58px;display:flex;align-items:center;gap:10px;background:#24252d;font-size:14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.agent-header small{margin-left:auto;color:var(--muted);font-size:11px}.agent-name{line-height:1.4}.agent-name strong{font-weight:500}.agent-name span{display:block;font-size:10px;color:var(--muted)}.terminal{position:absolute;inset:58px 0 0}.terminal-layer{position:absolute;inset:0;padding:22px}.command{font:14px/1.6 var(--mono);margin:0;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}.command .prefix{color:var(--accent)}.result{padding:17px 0 0;margin:0;font-size:18px;line-height:1.45;color:var(--ink)}.result small{display:block;color:var(--muted);font-size:10px;letter-spacing:.03em;margin-bottom:10px}.activity{position:absolute;bottom:0;left:0;right:0;min-height:50px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:14px 18px;color:var(--ink);font-size:12px;background:#24252d}.dot{width:6px;height:6px;background:var(--ink);display:inline-block}.waiting{margin-top:24px;border-top:1px solid var(--line);padding-top:16px;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted)}.clock-icon{font-size:16px}.reviewing{font-size:12px;color:var(--muted);margin-top:25px;display:flex;gap:10px;align-items:center}.work-checks{display:grid;grid-template-columns:1fr 14px;gap:10px;margin-top:20px;font-size:12px;color:var(--muted)}.work-checks i{width:8px;height:8px;background:var(--ink)}.later{position:absolute;left:510px;top:104px;z-index:5;font-size:12px;color:var(--muted)}.pr{position:absolute;left:496px;top:165px;width:448px;height:530px;z-index:5;background:var(--surface);border-top:1px solid var(--accent);padding:23px 27px}.pr .link{font-size:11px;color:var(--muted)}.next-role{margin:16px 0 0;padding:10px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);font-size:12px;color:var(--accent);display:flex;gap:10px;align-items:center}.handoff-copy{position:absolute;left:524px;top:391px;padding:3px 6px;background:var(--ink);color:var(--bg);z-index:9;font-size:19px;line-height:27px;transform-origin:0 0}.owner-view{position:absolute;left:499px;top:697px;width:442px;padding:9px 14px;font-size:11px;color:var(--muted);z-index:9;display:flex;align-items:center;justify-content:center;gap:9px}.linked-pr{padding:12px 0 0;margin-top:14px;border-top:1px solid var(--line)}.linked-pr span{display:block;font-size:11px;color:var(--muted)}.linked-pr strong{display:block;font-size:17px;font-weight:500;margin-top:4px}.linked-pr small{display:block;font-size:10px;color:var(--muted)}.issue-discussion .thread{margin-top:13px;padding-top:13px;padding-bottom:8px}.issue-discussion .thread p{font-size:16px}.issue-discussion .thread small{font-size:9px}.intro{z-index:11}.intro-line{position:absolute;left:0;right:0;top:126px;text-align:center;font-size:29px;font-weight:400;letter-spacing:-.03em}.request{position:absolute;top:300px;width:400px;padding:25px 28px;border-top:1px solid var(--line)}.request p{font-size:23px;line-height:1.4;margin:18px 0 0;letter-spacing:-.03em}.request-a{left:100px}.request-b{right:100px}.relay-line{position:absolute;top:389px;height:1px;width:90px;background:var(--line)}.relay-line.left{left:500px}.relay-line.right{right:500px}.human{position:absolute;left:600px;top:340px;width:240px;display:flex;align-items:center;justify-content:center;gap:13px;z-index:16;transform-origin:0 0}.human strong{display:block;font-size:22px;font-weight:500}.human span:not(.human-symbol){display:block;font-size:11px;color:var(--muted);max-width:155px}.human-symbol{width:32px;height:36px;display:flex;align-items:center;font-size:28px;color:var(--accent)}.human-symbol:before{content:'>'}.world-line{position:absolute;left:80px;top:120px;font-size:24px;color:var(--ink);z-index:8}.cursor,.click-ring{display:none}.flow-guide{position:absolute;left:220px;right:220px;bottom:18px;z-index:21;color:var(--muted)}.guide-caption{text-align:center;font-size:12px;margin-bottom:12px}.guide-route{display:flex;gap:10px;align-items:center;justify-content:center}.guide-node{padding:6px 0;min-width:174px;text-align:center;font-size:13px}.guide-tool{color:var(--ink);display:flex;align-items:center;gap:10px;padding:6px 12px;min-width:215px;justify-content:center}.guide-tool strong{font-size:17px;font-weight:500;color:var(--accent)}.guide-tool span{font-size:11px}.route-arrow{position:relative;width:65px;height:1px;background:var(--line);flex:none}.route-arrow:after{content:'';position:absolute;right:0;top:-3px;width:7px;height:7px;border-top:1px solid var(--muted);border-right:1px solid var(--muted);transform:rotate(45deg)}.route-dot{position:absolute;top:-2px;left:0;width:5px;height:5px;background:var(--ink)}.monitor-message{position:absolute;left:0;right:0;bottom:27px;text-align:center;font-size:16px;z-index:25}.credits,.end{position:absolute;inset:0;background:var(--bg);color:var(--ink);overflow:hidden}.credits{z-index:30}.credit-header{position:absolute;left:64px;right:64px;top:40px;display:flex;align-items:center;gap:28px;border-bottom:1px solid var(--line);padding-bottom:20px;z-index:2;background:var(--bg)}.credit-header strong{font-size:30px;font-weight:500}.credit-header span{color:var(--muted);font-size:15px}.credit-mask{position:absolute;inset:125px 60px 55px;overflow:hidden;mask-image:linear-gradient(transparent,black 5%,black 92%,transparent)}.roll{position:absolute;left:0;right:0;top:0}.credit-group{margin:18px 0 38px}.credit-group h3{font-size:13px;font-weight:400;color:var(--muted);margin:0 0 18px}.command-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px 45px;font-size:18px;line-height:1.4;list-style:none;padding:0;margin:0}.command-grid li{overflow-wrap:anywhere}.command-grid .read,.command-grid .write,.command-grid .destroy{color:var(--accent)}.command-grid.meta{font-size:15px}.credit-footer{position:absolute;bottom:20px;left:64px;color:var(--muted);font-size:12px}.end{z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center}.end strong{font-size:76px;font-weight:400;letter-spacing:-.03em}.end strong:after{content:'';display:inline-block;width:35px;height:65px;background:var(--ink);margin-left:20px;vertical-align:-7px}.end p{color:var(--muted);font-size:18px;margin:20px 0}.controls{display:flex;gap:12px;align-items:center;padding:18px 0}.controls button{border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink);padding:9px 14px;font:12px var(--mono);cursor:pointer;min-height:38px;white-space:nowrap}.controls button:hover{background:#282a32}.controls #play{background:var(--ink);color:var(--bg);min-width:110px}.controls input{flex:1;min-width:50px;accent-color:var(--ink);cursor:pointer}.controls output{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}.note,details{font-size:12px;color:var(--muted)}details{border-top:1px solid var(--line);margin-top:24px;padding-top:15px}details p{max-width:78ch;line-height:1.8}summary{cursor:pointer}.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}@media(max-width:600px){main{padding:16px 10px}header{align-items:flex-start}header p{max-width:30ch;font-size:10px}header>a{font-size:11px;white-space:nowrap}.controls{flex-wrap:wrap;gap:8px}.controls input{order:5;flex-basis:100%}.controls button{padding:9px 10px}.controls output{margin-left:auto}.note{line-height:1.8}}
+
+
+/* Opening: the same two conversations resolve into the project workspace. */
+.intro-logo{position:absolute;right:80px;top:64px;width:148px;height:auto}
+.intro-line{left:80px;right:auto;top:112px;text-align:left;font-size:49px;line-height:1.22;letter-spacing:-.035em;max-width:1100px}
+.intro-line span{color:var(--muted)}
+.request{top:348px;width:435px;padding:20px 0;border:0}
+.request-a{left:80px}.request-b{right:80px}
+.request .who{font-size:14px;color:var(--muted);padding-bottom:16px;border-bottom:1px solid var(--line)}
+.request p{font-size:25px;line-height:1.45;margin-top:20px}
+.request .message-state{display:block;margin-top:20px;font-size:12px;color:var(--muted)}
+.relay-line{top:437px;width:75px}.relay-line.left{left:515px;transform-origin:left}.relay-line.right{right:515px;transform-origin:right}
+.human{top:390px}.human-symbol{font-size:32px}.human strong{font-size:25px}
+.opening-answer{position:absolute;left:80px;right:80px;top:636px;padding-top:22px;border-top:1px solid var(--line);font-size:24px;letter-spacing:-.025em;color:var(--ink)}
+.opening-answer span{display:block;font-size:14px;color:var(--muted);margin-top:12px}
+.credit-logo{width:105px;height:auto}.end-logo{width:144px;height:auto;margin-bottom:54px}
+
+/* Keep context in place; only the current action asks to be read. */
+.message-state,.opening-answer span,.relay-line,.world-line,.record-label,.org .team-label,.org>.icon,.ghost,.pr .link,.thread small,.guide-caption,.route-dot,.work-checks,.reviewing,.owner-view,.next-role{display:none}
+.org{font-size:0}.org strong{font-size:16px;color:var(--muted)}
+.human span:not(.human-symbol){display:none}.human strong{font-size:22px}
+.opening-answer{border:0;top:625px;font-size:29px;padding:0;max-width:900px}
+.request .who{border:0;padding-bottom:5px}.request p{font-size:28px}
+.agent .activity{background:transparent;border:0;color:var(--muted)}
+.flow-guide{bottom:22px}.guide-route{gap:8px}.guide-tool{min-width:190px}.guide-node{font-size:12px;color:var(--muted)}
+.bar .nav{display:none}.bar{border-color:transparent}.bar .forgejo,.bar .repo{font-size:14px;color:var(--muted)}
+.request .message-state,#a-handoff .result{display:none}
+
+:root{--agent-a:#8caee0;--agent-b:#b7a0dd}
+.request-a .who,.agent.a .agent-name strong,.agent.a .prefix,#issue-progress .who,#pr-handoff .who{color:var(--agent-a)}
+.request-b .who,.agent.b .agent-name strong,.agent.b .prefix,#pr-ack .who{color:var(--agent-b)}
+.request-a .icon,.agent.a .icon,#issue-progress .icon,#pr-handoff .icon{background:var(--agent-a)}
+.request-b .icon,.agent.b .icon,#pr-ack .icon{border-color:var(--agent-b)}
+.agent.a .agent-header{border-top-color:var(--agent-a)}.agent.b .agent-header{border-top-color:var(--agent-b)}
+#pr-handoff .mark{background:transparent;color:var(--ink);padding:0}
+#flow-source[data-agent="a"],#flow-target[data-agent="a"]{color:var(--agent-a)}
+#flow-source[data-agent="b"],#flow-target[data-agent="b"]{color:var(--agent-b)}
+.pr{border-top-color:var(--line)}
+
+.human{display:none}
+
+.pr .link{display:block;font-size:12px;color:var(--muted);margin-bottom:22px}.pr .issue-num strong{font-weight:500;color:var(--ink)}
+
+#flow-guide{display:none}.agent{width:390px}.agent.b{left:1026px}
+.command{font-size:14px;color:var(--muted)}.command.command-active{color:#f0f1f7}
+.command .command-verb{padding:3px 5px;margin-left:-5px}
+.agent.a .command-active .command-verb{background:var(--agent-a);color:#16171b}
+.agent.b .command-active .command-verb{background:var(--agent-b);color:#16171b}
+.agent .result{color:var(--muted);font-size:16px}.agent .result small{font-size:10px}
+#a-progress .result{display:none}.agent .activity{font-size:11px}
+.direct-flow{position:absolute;inset:0;width:1440px;height:810px;z-index:8;pointer-events:none;overflow:visible}
+.direct-flow path{fill:none;stroke:currentColor;stroke-width:1.5}.direct-flow text{fill:currentColor;font:11px var(--mono);text-anchor:middle;letter-spacing:.06em}
+.direct-flow .flow-a{color:var(--agent-a)}.direct-flow .flow-b{color:var(--agent-b)}
+
+.direct-flow path{stroke-linecap:round;stroke-linejoin:round}
+.agent .command-verb{box-decoration-break:clone;-webkit-box-decoration-break:clone}
+
+.workspace-logo{position:absolute;right:44px;top:26px;width:90px;height:auto;z-index:17;pointer-events:none}
+.intro-logo{display:none}
+.direct-flow{isolation:isolate}.direct-flow g{will-change:opacity}.direct-flow path{stroke-width:1.25}
+
+/* Structural surfaces stay opaque; only their content changes emphasis. */
+#human,#world-line,#project,#record-label,#handoff-copy,#owner-view,#cursor,#click-ring,#next-role{display:none}
+.issue,.pr,.agent{background:var(--surface)}.agent .terminal{background:var(--surface)}
+#b-ack .result,#a-progress .result,#a-handoff .result{display:none}
+.direct-flow path{stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+.intro-context{position:absolute;left:180px;top:116px;color:var(--muted);font-size:15px}.intro-context span{color:#747784}
+.intro-line,.intro-bridge,.opening-answer{position:absolute;left:180px;right:auto;top:245px;max-width:1100px;font:400 62px/1.2 var(--mono);letter-spacing:-.035em;text-align:left;border:0;padding:0;margin:0}
+.intro-bridge{color:var(--ink)}.opening-answer span{display:block;margin-top:34px;font-size:19px;letter-spacing:0;color:var(--muted)}
+.request,.request-a,.request-b{position:absolute;left:180px;right:auto;top:245px;width:1080px;border:0;padding:0;background:transparent}
+.request .who{display:flex;align-items:baseline;gap:24px;padding:0;border:0}.cast-name{font:500 38px/1.2 var(--mono);letter-spacing:-.025em}.cast-role{font-size:16px;color:var(--muted)}
+.request p{font:400 43px/1.35 var(--mono);letter-spacing:-.03em;margin:35px 0 0;max-width:1000px}
+.board-caption{position:absolute;left:80px;top:125px;font-size:27px;color:var(--ink)}
+.board .todo-column{left:80px}.board .ready-column{left:525px}.board .progress-column{left:970px;opacity:.35}
+.column{top:210px}.team-rule{line-height:1.5;max-width:320px;margin-top:8px}.issue{z-index:3}
+
+.pr{height:610px;transform-origin:50% 50%}
+#pr-review-complete{margin-top:12px;padding:12px 0 0}#pr-review-complete .who{color:var(--agent-b)}#pr-review-complete .icon{border-color:var(--agent-b)}
+#pr-review-complete p{font-size:16px;line-height:1.4;margin-top:8px}.review-later{font-size:10px;color:var(--muted);margin-left:auto}
+.owner-decision{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}.owner-decision strong{display:block;font-size:18px;font-weight:500}.owner-decision>span{display:block;font-size:11px;color:var(--muted);margin-top:7px}
+#monitor-message{display:none}
+
+.brand-opening{position:absolute;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:38px}.brand-opening img{width:264px;height:auto}.brand-opening p{margin:0;text-align:center;color:var(--ink);font:400 25px/1.5 var(--mono)}
+
+#opening-headline span{font-size:42px;line-height:1.5}
+.inventory-access{display:flex;align-items:baseline;gap:18px;margin:0 0 16px;font-size:13px}.inventory-access a{color:var(--ink)}.inventory-access span{color:var(--muted);font-size:11px}@media(max-width:600px){.inventory-access{align-items:flex-start;flex-direction:column;gap:4px}}
+</style></head>
+<body><main><header><div><h1>fgj / shared workspace</h1><p>Scope → Ready → implementation → review · a shared project record</p></div><a href="../../README.md">About fgj</a></header>
+<div class="viewport" id="viewport" role="img" aria-label="A developer scopes and prioritizes an issue, moves it to Ready, and follows implementation and review through shared issue and pull request comments. Full transcript follows.">
+<div class="frame" id="frame" aria-hidden="true">
+<div class="brand-opening" id="brand-opening"><img src="../brand/fgj-wordmark-white.svg" alt="fgj"><p>A Forgejo command-line interface<br>for LLM agents.</p></div>
+<div class="camera" id="camera">
+<img class="workspace-logo" id="workspace-logo" src="../brand/fgj-wordmark-white.svg" alt="fgj">
+<div class="browser" id="browser"><div class="bar"><span class="forgejo">Forgejo</span><span class="repo">acme / project</span><div class="nav"><span>Issues</span><span>Pull requests</span><span class="active">Project board</span></div></div>
+<div class="project" id="project">Your project's priorities</div>
+<div class="board" id="board"><div class="board-caption">You decide what’s ready.</div>
+<div class="column todo-column">TO DO<div class="ghost" style="top:310px"><small>#11</small>Follow-up task</div></div>
+<div class="column ready-column" id="ready-column">READY <span class="team-rule">Team rule: agents can start</span></div>
+<div class="column progress-column">IN PROGRESS<div class="ghost" style="top:50px"><small>#8</small>Existing work</div></div>
+</div></div>
+<div class="intro" id="intro"><img class="intro-logo" id="intro-logo" src="../brand/fgj-wordmark-white.svg" alt="fgj"><div class="intro-context">agent-org <span>/ acme / project</span></div><div class="intro-line" id="opening-headline">Two or more agents.<br><span>One project, issue, or PR.</span></div><div class="intro-bridge" id="intro-bridge">You’re still<br>the messenger.</div>
+<div class="request request-a" id="request-a"><div class="who"><strong class="cast-name">agent-a</strong><span class="cast-role">Implementation</span></div><p>“What’s the next priority<br>on this project?”</p><span class="message-state">waiting for your direction</span></div>
+<div class="request request-b" id="request-b"><div class="who"><strong class="cast-name">agent-b</strong><span class="cast-role">Review</span></div><p>“What’s the latest<br>on this issue?”</p><span class="message-state">waiting for your context</span></div>
+<div class="opening-answer" id="opening-answer">Give them a<br>shared project record.<span>Your board. Your issues. Your pull requests.</span></div>
+<div class="relay-line left" id="relay-left"></div><div class="relay-line right" id="relay-right"></div>
+</div>
+<div class="human" id="human"><span class="human-symbol"></span><div><strong>You</strong><span id="human-role">Relaying priorities and updates</span></div></div>
+<div class="world-line" id="world-line">Let agents work from the project record you already use.</div>
+<div class="org" id="org"><strong>agent-org</strong><span class="team-label">Your AI team</span><span class="icon"></span>Implement<span class="icon b"></span>Review</div>
+<div class="record-label" id="record-label">Issue · scope, priority, and current progress</div>
+<div class="issue" id="issue"><div class="issue-content" id="issue-content">
+<div class="issue-num">Issue #12<span class="priority" id="priority">Next priority</span></div><h2>Scoped change</h2>
+<div class="scope-lines" id="scope-lines"><div id="scope-one"><span class="scope-check">✓</span> Expected behavior defined</div><div id="scope-two"><span class="scope-check">✓</span> Acceptance checks defined</div></div>
+<div class="ready-tag" id="ready-tag">Ready · agents can start</div>
+<div class="issue-discussion" id="issue-discussion"><div class="thread"><div class="who"><span class="icon you"></span>You<small>scope and order</small></div><p>Implementation first.<br>Review after the PR handoff.</p></div>
+<div class="thread" id="issue-progress"><div class="who"><span class="icon"></span>agent-a<small>progress update</small></div><p>Started implementation.<br>Following the agreed scope.</p></div>
+<div class="linked-pr" id="linked-pr"><span>Implementation ready</span><strong>Proposed changes → PR #18</strong><small>Review continues in the pull request</small></div></div>
+</div></div>
+<div class="agent a" id="agent-a"><div class="agent-header"><span class="icon"></span><div class="agent-name"><strong>agent-a</strong><span>Role: implementation</span></div><small>agent-org</small></div><div class="terminal">
+<div class="terminal-layer" id="a-board"><pre class="command"><span class="prefix">$ </span>fgj read board list</pre><p class="result" id="a-board-result"><small>BOARD EXCERPT</small>Ready → Issue #12</p></div>
+<div class="terminal-layer" id="a-scope"><pre class="command"><span class="prefix">$ </span>fgj read issue get 12</pre><p class="result" style="font-size:16px;padding-top:9px"><small>SCOPE EXCERPT</small>Expected behavior + acceptance checks.</p><pre class="command" style="margin-top:18px"><span class="prefix">$ </span>fgj read comment list 12
+  --last 3</pre><p class="result"><small>LATEST ISSUE COMMENT · YOU</small>Implementation first.<br>Review after the PR handoff.</p></div>
+<div class="terminal-layer" id="a-progress"><pre class="command"><span class="prefix">$ </span>fgj write comment add 12
+  --body-file /tmp/progress.md</pre><p class="result"><small>COMMENT CONTENT</small>Started implementation.<br>Following the agreed scope.</p><div class="work-checks" id="work-checks"><span>Implementation</span><i></i><span>Acceptance checks</span><i></i></div></div>
+<div class="terminal-layer" id="a-handoff"><p class="result" style="padding:0 0 24px"><small>WORK COMPLETED · LATER</small>Implementation complete.</p><pre class="command"><span class="prefix">$ </span>fgj write comment add 18
+  --body-file /tmp/handoff.md</pre><p class="result"><span class="mark">Ready for review.</span></p></div>
+</div><div class="activity"><span class="dot"></span><span id="a-status">Checking the Ready queue</span></div></div>
+<div class="agent b" id="agent-b"><div class="agent-header"><span class="icon b"></span><div class="agent-name"><strong>agent-b</strong><span>Role: review</span></div><small>agent-org</small></div><div class="terminal">
+<div class="terminal-layer" id="b-context"><pre class="command"><span class="prefix">$ </span>fgj read comment list 12
+  --last 3</pre><p class="result" id="b-context-result"><small>LATEST ISSUE COMMENT · YOU</small>Review after the PR handoff.</p><div class="waiting" id="waiting"><span class="clock-icon">◷</span>Waiting for implementation</div></div>
+<div class="terminal-layer" id="b-read"><pre class="command"><span class="prefix">$ </span>fgj read pr get 18</pre><p class="result" style="font-size:16px;padding-top:9px"><small>PR EXCERPT</small>Implements issue #12 · open</p><pre class="command" id="b-comment-command" style="margin-top:18px"><span class="prefix">$ </span>fgj read comment list 18
+  --last 3</pre><p class="result" id="b-handoff-result"><small>LATEST PR COMMENT · AGENT-A</small><span class="mark">Ready for review.</span></p></div>
+<div class="terminal-layer" id="b-ack"><pre class="command"><span class="prefix">$ </span>fgj write comment add 18
+  --body-file /tmp/review-start.md</pre><p class="result"><small>COMMENT CONTENT</small>Acknowledged.<br>Starting review.</p><div class="reviewing" id="reviewing"><span class="icon b"></span>Checking changes against issue scope</div></div>
+</div><div class="activity"><span class="dot" id="b-dot"></span><span id="b-status">Checking the latest status</span></div></div>
+<div class="later" id="later">Issue #12 → PR #18 · implementation ready</div>
+<div class="pr" id="pr"><div class="issue-num"><span>Issue #12 → <strong>PR #18</strong></span><span class="open">Open</span></div><h2>Proposed changes</h2><div class="link">Implements the scope in issue #12.</div>
+<div class="thread" id="pr-handoff"><div class="who"><span class="icon"></span>agent-a<small>work complete</small></div><p>Implementation complete.<br><span class="mark">Ready for review.</span></p></div>
+<div class="next-role" id="next-role"><span class="icon b"></span><span id="next-role-text">Next: agent-b · review</span></div>
+<div class="thread" id="pr-ack"><div class="who"><span class="icon b"></span>agent-b<small>handoff acknowledged</small></div><p>Acknowledged.<br>Starting review.</p></div><div class="thread review-complete" id="pr-review-complete"><div class="who"><span class="icon b"></span>agent-b<span class="review-later">later</span></div><p>Review complete.<br>Ready for owner review.</p></div><div class="owner-decision" id="owner-decision"><strong>Ready for your review.</strong><span>Review the PR → merge when approved</span></div></div>
+<svg class="direct-flow" viewBox="0 0 1440 810" aria-hidden="true"><defs><marker id="arrow-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 1 1 L 9 5 L 1 9" style="stroke:var(--agent-a)"/></marker><marker id="arrow-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 1 1 L 9 5 L 1 9" style="stroke:var(--agent-b)"/></marker></defs><g id="direct-a" class="flow-a"><text x="455" y="296" id="direct-a-label">READ</text><path id="direct-a-path" pathLength="1" marker-end="url(#arrow-a)"/></g><g id="direct-b" class="flow-b"><text x="985" y="296" id="direct-b-label">READ</text><path id="direct-b-path" pathLength="1" marker-end="url(#arrow-b)"/></g></svg>
+<div class="handoff-copy" id="handoff-copy">Ready for review.</div>
+<div class="owner-view" id="owner-view"><span class="icon you"></span><span>You are viewing the agents' updates</span></div>
+<div class="cursor" id="cursor"></div><div class="click-ring" id="click-ring"></div>
+</div>
+<div class="flow-guide" id="flow-guide"><div class="guide-caption">fgj gives agents a CLI to read and update Forgejo.</div><div class="guide-route"><span class="guide-node" id="flow-source">Ready queue</span><span class="route-arrow"><i class="route-dot" id="flow-dot-1"></i></span><span class="guide-tool"><strong>fgj</strong><span id="flow-action">reads priorities</span></span><span class="route-arrow"><i class="route-dot" id="flow-dot-2"></i></span><span class="guide-node" id="flow-target">agent-a</span></div></div>
+<div class="monitor-message" id="monitor-message">You set the scope and priorities. Follow progress in the shared record.</div>
+<div class="credits" id="credits"><div class="credit-header"><img class="credit-logo" src="../brand/fgj-wordmark-white.svg" alt="fgj"><span>A CLI for LLM agents working with Forgejo</span></div><div class="credit-mask" id="credit-mask"><div class="roll" id="roll"></div></div><div class="credit-footer">Command names · arguments omitted for operational verbs · pause to explore</div></div>
+<div class="end" id="end"><img class="end-logo" src="../brand/fgj-wordmark-white.svg" alt="fgj"><strong>fgj help</strong><p>read / write / destroy</p></div>
+</div></div>
+<div class="controls"><button type="button" id="play">Play film</button><button type="button" id="replay" aria-label="Restart from beginning">Restart</button><label class="sr" for="seek">Playback position</label><input id="seek" type="range" min="0" max="62.2" step=".01" value="0"><output id="time" for="seek">0:00 / 1:02</output><button type="button" id="fullscreen">Full screen</button></div>
+<p class="inventory-access"><a href="commands.txt" target="_blank" rel="noopener">Browse all 57 commands ↗</a><span>Full inventory · read at your own pace</span></p>
+<p class="note">62-second walkthrough · Fictional project · Ready is this team’s start rule</p>
+<details><summary>Transcript and motion notes</summary><p>The opening shows the fgj logo and “A Forgejo command-line interface for LLM agents.” It then introduces two or more agents sharing a project, issue, or PR; agent-a and agent-b illustrate the workflow. Agent-a is introduced as implementation and asks for priority; agent-b is introduced as review and asks for status. “You’re still the messenger” frames the coordination burden. “Give them a shared project record” introduces the solution. The developer brings that coordination into the familiar project board, defines the issue scope and acceptance checks, sets its priority, and moves it from To do to Ready. In this example, Ready is the team's start signal. Agent-a reads the board, issue scope, and latest issue comments. Agent-b reads the issue comments and knows its role is review after implementation. Agent-a posts progress on the issue while the developer follows the same updates. The issue points to its proposed changes in PR #18. The PR retains the issue reference and stays fixed as agent-a posts “Implementation complete. Ready for review.” Agent-b reads the PR and its comments, then posts “Acknowledged. Starting review.” Later, agent-b adds “Review complete. Ready for owner review.” The view moves closer to the same open PR and its accumulated comments: “Ready for your review. Review the PR → merge when approved.” The PR remains open for the owner’s decision. The command credits follow.</p><p>Motion reference: <a href="https://tympanus.net/codrops/2026/01/20/animating-responsive-grid-layout-transitions-with-gsap-flip/">continuous layout transitions</a> and <a href="https://tympanus.net/codrops/2025/10/29/building-a-layered-zoom-scroll-effect-with-gsap-scrollsmoother-and-scrolltrigger/">overlapping camera movement</a>. Timing discipline informed by <a href="https://tympanus.net/codrops/2025/09/03/7-must-know-gsap-animation-tips-for-creative-developers/">Carl Schooff’s animation orchestration notes</a>. Native deterministic timeline: 380ms command reveals, 520ms eased directional swipes, 420ms result reveals, and 640ms layout moves. Editorial holds add 1 second to the opening headline, 1.4 seconds to the latest issue-comment result, and 0.8 seconds to the issue-to-PR link. The full credits retain their six-second roll; the inventory is available beside the player. Every result starts at its own arrow’s arrival. Surfaces remain opaque. No per-frame layout measurement; pause, seek, replay, resize, and reduced motion share the same state calculation.</p></details>
+</main>
+<script>
+const inventory={"verbs":["fgj read comment list","fgj read comment get","fgj write comment add","fgj write comment edit","fgj write comment attach","fgj destroy comment delete","fgj read issue get","fgj read issue list","fgj write issue create","fgj write issue edit","fgj write issue close","fgj write issue reopen","fgj write dep add","fgj write dep remove","fgj read label list","fgj write label create","fgj write label edit","fgj read milestone list","fgj write milestone create","fgj write milestone edit","fgj write milestone close","fgj write milestone reopen","fgj read pr get","fgj read pr list","fgj write pr create","fgj write pr edit","fgj write pr close","fgj write pr reopen","fgj destroy pr merge","fgj read status get","fgj read status wait","fgj read run get","fgj read run log","fgj write run rerun","fgj read run wait","fgj read board list","fgj read board card","fgj write board create","fgj write board add","fgj write board move","fgj read api get"],"meta":["fgj help [<noun> [<action>]]","fgj version","fgj auth [--profile <name>] [<url>]","fgj auth web [--profile <name>]","fgj auth status","fgj auth default <profile>","fgj auth remove <profile>","fgj auth bound <profile> [on|off]","fgj rules show <codex|claude|pi>","fgj rules status","fgj rules install <codex|claude|pi>","fgj rules install pi --role <role>=<profile>","fgj skill show","fgj skill status","fgj skill install <codex|claude|pi>","fgj hook pi"]};
+const groups=[["Issues · comments · dependencies",inventory.verbs.slice(0,14)],["Labels · milestones · pull requests",inventory.verbs.slice(14,29)],["Checks · runs · boards · API",inventory.verbs.slice(29)],["Help · setup · harness integration",inventory.meta]];
+const els={};
+for(const el of document.querySelectorAll("[id]"))els[el.id]=el;
+for(const [label,commands] of groups){const group=document.createElement("section");group.className="credit-group";const title=document.createElement("h3");title.textContent=label;group.append(title);const list=document.createElement("ul");list.className="command-grid"+(commands===inventory.meta?" meta":"");for(const cmd of commands){const li=document.createElement("li");const match=cmd.match(/^(fgj )(read|write|destroy)( .*)$/);if(match){li.append(document.createTextNode(match[1]));const span=document.createElement("span");span.className=match[2];span.textContent=match[2];li.append(span,document.createTextNode(match[3]));}else li.textContent=cmd;list.append(li);}group.append(list);els.roll.append(group);}
+const clamp=v=>Math.max(0,Math.min(1,v)),lerp=(a,b,p)=>a+(b-a)*p;
+const ease=p=>p*p*p*(p*(p*6-15)+10);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const MOTION={reveal:.38,focus:.32,layout:.64,commandLead:.72,swipe:.52,result:.42};
+// Reading holds occur only after their content has settled; exchange timings stay intact.
+const readingHolds=[{at:2.9,seconds:1},{at:22.17,seconds:1.4},{at:26.05,seconds:.8}];
+const duration=59+readingHolds.reduce((sum,hold)=>sum+hold.seconds,0);
+function storyTime(time){
+ let elapsed=0;
+ for(const hold of readingHolds){
+  const start=hold.at+elapsed;
+  if(time<start)return time-elapsed;
+  if(time<start+hold.seconds)return hold.at;
+  elapsed+=hold.seconds;
+ }
+ return time-elapsed;
+}
+const clockLabel=time=>`${Math.floor(time/60)}:${String(Math.floor(time%60)).padStart(2,'0')}`;
+let position=0,playing=false,last=0,raf=0,scale=1,rollHeight=0;
+function ramp(t,start,length=MOTION.reveal){return ease(clamp((t-start)/length));}
+function windowAt(t,start,end,fade=MOTION.reveal){return ramp(t,start,fade)*(1-ramp(t,end,fade));}
+function show(id,value){els[id].style.opacity=clamp(value);}
+function visible(id,value){els[id].style.visibility=value?'visible':'hidden';}
+function move(id,x=0,y=0,s=1){els[id].style.transform=`translate(${x}px,${y}px) scale(${s})`;}
+function reveal(el,t,start,length=MOTION.reveal){const p=ramp(t,start,length);el.style.opacity=p;el.style.transform=`translateY(${reduced.matches?0:4*(1-p)}px)`;}
+function color(from,to,p){return `rgb(${from.map((v,i)=>Math.round(lerp(v,to[i],p))).join(',')})`;}
+for(const pre of document.querySelectorAll('.command'))pre.innerHTML=pre.innerHTML.replace(/fgj (read|write)/g,'<span class="command-verb">fgj $1</span>');
+const flows=[
+ {id:'board',start:8.7,end:11.22,agent:'a',mode:'read',command:'#a-board .command',result:'#a-board-result',y:300},
+ {id:'scope',start:11.5,end:15.22,agent:'a',mode:'read',command:'#a-scope .command:first-child',result:'#a-scope .result:nth-of-type(1)',y:330},
+ {id:'context',start:13.5,end:15.22,agent:'a',mode:'read',command:'#a-scope .command:nth-of-type(2)',result:'#a-scope .result:nth-of-type(2)',y:420},
+ {id:'progress',start:15.5,end:20.52,agent:'a',mode:'write',command:'#a-progress .command',result:'#issue-progress',y:485},
+ {id:'handoff',start:20.8,end:38.3,agent:'a',mode:'write',command:'#a-handoff .command',result:'#pr-handoff',y:355},
+ {id:'pr',start:25,end:30.72,agent:'b',mode:'read',command:'#b-read .command:first-child',result:'#b-read .result:nth-of-type(1)',y:270},
+ {id:'comments',start:27.5,end:30.72,agent:'b',mode:'read',command:'#b-comment-command',result:'#b-handoff-result',y:355},
+ {id:'ack',start:31,end:38.3,agent:'b',mode:'write',command:'#b-ack .command',result:'#pr-ack',y:490}
+];
+const ns='http://www.w3.org/2000/svg',svg=document.querySelector('.direct-flow');
+svg.replaceChildren();
+for(const f of flows){
+ f.el=document.querySelector(f.command);f.verb=f.el.querySelector('.command-verb');f.resultEl=document.querySelector(f.result);
+ f.arrowStart=f.start+MOTION.commandLead;f.arrival=f.arrowStart+MOTION.swipe;
+ f.group=document.createElementNS(ns,'g');f.group.id='exchange-'+f.id;f.group.classList.add('flow-'+f.agent);
+ f.path=document.createElementNS(ns,'path');f.head=document.createElementNS(ns,'path');f.head.setAttribute('d','M-6 -3 L0 0 L-6 3');
+ f.label=document.createElementNS(ns,'text');f.label.textContent=f.mode.toUpperCase();f.group.append(f.path,f.head,f.label);svg.append(f.group);
+}
+const panes=[['a-board',8.7,11.22],['a-scope',11.5,15.22],['a-progress',15.5,20.52],['a-handoff',20.8,38.3],['b-context',10,24.72],['b-read',25,30.72],['b-ack',31,38.3]];
+const terminalResults=[...document.querySelectorAll('.terminal .result')];
+function measureFlows(){
+ // offsetTop ignores the reveal transforms, keeping the curve anchored throughout playback.
+ const offsetY=el=>{let y=0;for(let n=el;n&&n!==els.frame;n=n.offsetParent)y+=n.offsetTop;return y;};
+ const measurements=flows.map(f=>offsetY(f.el)+f.el.offsetHeight/2);
+ flows.forEach((f,i)=>{
+  const left=f.agent==='a',ax=left?426:1014,rx=left?484:956,mx=left?455:985;
+  const a=[ax,measurements[i]],r=[rx,f.y];f.points=f.mode==='write'?[a,[mx,a[1]],[mx,r[1]],r]:[r,[mx,r[1]],[mx,a[1]],a];
+  f.label.setAttribute('x',mx);f.label.setAttribute('y',Math.min(a[1],r[1])-18);
+ });
+}
+const mixPoint=(a,b,p)=>[lerp(a[0],b[0],p),lerp(a[1],b[1],p)];
+function drawFlow(f,p){
+ // Exact partial cubic: the arrowhead rides the growing curve, never pops at its end.
+ const [a,b,c,d]=f.points,ab=mixPoint(a,b,p),bc=mixPoint(b,c,p),cd=mixPoint(c,d,p),abc=mixPoint(ab,bc,p),bcd=mixPoint(bc,cd,p),tip=mixPoint(abc,bcd,p);
+ f.path.setAttribute('d',`M${a.join(' ')} C${ab.join(' ')} ${abc.join(' ')} ${tip.join(' ')}`);
+ const tangent=p<.001?[b[0]-a[0],b[1]-a[1]]:[bcd[0]-abc[0],bcd[1]-abc[1]];
+ f.head.setAttribute('transform',`translate(${tip[0]} ${tip[1]}) rotate(${Math.atan2(tangent[1],tangent[0])*180/Math.PI})`);
+}
+function render(){
+ const story=storyTime(position),p=story-2,t=p-5;
+ show('brand-opening',1-ramp(story,1.6,.4));
+ // Editorial opening: one actor or message owns the same visual stage at a time.
+ show('intro',1-ramp(p,8.1,.3));
+ show('opening-headline',1-ramp(p,1,.25));
+ show('request-a',windowAt(p,1.25,2.75,.25));
+ show('request-b',windowAt(p,3,4.5,.25));
+ show('intro-bridge',windowAt(p,4.75,5.7,.25));
+ show('opening-answer',windowAt(p,6,8.1,.3));move('opening-answer');
+ // Names precede each spoken question; neither actor floats beside another scene.
+ document.querySelector('#request-a p').style.opacity=ramp(p,1.55,.3);
+ document.querySelector('#request-b p').style.opacity=ramp(p,3.3,.3);
+ show('browser',ramp(p,8.4,.3));show('org',.45*ramp(t,8.7));
+ // Three separate beats: move to Ready, settle, clear board, open the same issue.
+ const drag=reduced.matches?Number(p>=10.66):ramp(p,10.3,.72);
+ const expand=reduced.matches?Number(p>=12.97):ramp(p,12.65,MOTION.layout);
+ const x=lerp(lerp(80,525,drag),496,expand),y=lerp(300,165,expand);
+ Object.assign(els.issue.style,{left:x+'px',top:y+'px',width:lerp(390,448,expand)+'px',height:lerp(245,530,expand)+'px',opacity:'1',transform:'none'});
+ visible('issue',p>=8.7&&t<20);
+ els['issue-content'].style.transform=`scale(${lerp(.86,1,expand)})`;
+ show('board',ramp(p,8.4,.3)*(1-ramp(p,12.2,.3)));
+ els['ready-column'].style.background=`rgba(36,37,45,${windowAt(p,10.3,12.2,.3)})`;
+ show('scope-one',ramp(p,8.7));show('scope-two',ramp(p,9.1));show('priority',ramp(p,9.5));
+ show('ready-tag',ramp(p,11.1));els['ready-tag'].textContent=t<16.74?'Ready · agents can start':'In progress · implementation';
+ show('issue-discussion',ramp(p,13.29));
+ show('linked-pr',ramp(t,18.6));
+ // The new record replaces the issue only after the issue text has cleared.
+ const recordOut=1-ramp(t,19.5,.38);els['issue-content'].style.opacity=recordOut;
+ visible('pr',t>=20);show('pr',1);move('pr');
+ for(const el of document.querySelectorAll('.pr > .issue-num,.pr > h2,.pr > .link'))el.style.opacity=ramp(t,20,.38);
+ show('later',windowAt(t,19,20.8,.3));
+ // Opaque terminal shells; dim their content, never their backing surface.
+ visible('agent-a',t>=8.7);visible('agent-b',t>=10);show('agent-a',1);show('agent-b',1);move('agent-a');move('agent-b');
+ for(const [id,start,end] of panes){show(id,1-ramp(t,end,.28));visible(id,t>=start&&t<end+.28);move(id);}
+ for(const el of terminalResults)el.style.opacity=0;
+ show('b-context-result',ramp(t,10.8));show('waiting',ramp(t,11));
+ document.querySelector('#b-context .command').style.opacity=.45;
+ const weight={a:0,b:0};
+ for(const f of flows){
+  const commandReveal=ramp(t,f.start,MOTION.reveal),highlight=windowAt(t,f.start+.08,f.arrival+.42,MOTION.focus);
+  f.el.style.opacity=commandReveal;
+  f.el.style.transform=`translateY(${reduced.matches?0:4*(1-commandReveal)}px)`;
+  const accent=f.agent==='a'?[140,174,224]:[183,160,221];
+  f.el.style.color=color([161,163,179],[240,241,247],highlight);
+  f.verb.style.backgroundColor=`rgba(${accent.join(',')},${highlight})`;
+  f.verb.style.color=color([161,163,179],[22,23,27],highlight);
+  f.el.dataset.active=highlight>.5?'true':'false';
+  weight[f.agent]=clamp(weight[f.agent]+windowAt(t,f.start,f.id==='context'?f.end:f.arrival+.65,.32));
+  const swipe=reduced.matches?Number(t>=f.arrowStart):ramp(t,f.arrowStart,MOTION.swipe);
+  drawFlow(f,swipe);
+  f.group.style.opacity=.9*windowAt(t,f.arrowStart,f.arrival+.2,.18);
+  // The result belongs to this exact arrow's arrival, not to a separate scene timer.
+  reveal(f.resultEl,t,f.arrival,MOTION.result);
+ }
+ for(const agent of ['a','b']){
+  const shell=els['agent-'+agent],attention=.18+.82*weight[agent];
+  shell.querySelector('.terminal').style.opacity=attention;
+  shell.querySelector('.agent-header').style.opacity=.4+.6*weight[agent];
+  shell.querySelector('.activity').style.opacity=.3+.7*weight[agent];
+ }
+ // Keep completed shared comments in place and legible as the next agent works.
+ for(const id of ['issue-progress','pr-handoff','pr-ack'])els[id].style.transform='none';
+ els['a-status'].textContent=t<11.5?'Reading the Ready queue':t<15.5?'Reading scope and latest comments':t<16.74?'Posting progress':t<20.8?'Implementing the scoped work':t<22.04?'Posting implementation handoff':'Implementation handed off';
+ els['b-status'].textContent=t<25?'Waiting for the review handoff':t<31?'Reading the PR and latest comments':t<32.24?'Posting review acknowledgment':'Review underway';
+ show('monitor-message',windowAt(t,35,38.3));
+ // Later, the review is complete. Keep the accumulated thread visible for the owner.
+ reveal(els['pr-review-complete'],p,40.4,.42);
+ const closeup=reduced.matches?Number(p>=42.4):ramp(p,41.8,1.2);
+ move('pr',0,-65*closeup,1+.2*closeup);
+ for(const agent of ['a','b'])show('agent-'+agent,1-.92*closeup);
+ show('org',.45*ramp(t,8.7)*(1-closeup));
+ document.querySelector('.bar').style.opacity=1-closeup;
+ reveal(els['owner-decision'],p,42.8,.45);
+ show('later',windowAt(p,39.8,41.6,.3));els.later.textContent='Later · agent review complete';
+ const leave=ramp(t,42.3,.45);show('camera',1-leave);move('camera');show('credits',leave);move('credits');
+ const u=clamp((t-43.3)/6),edge=.08;
+ const roll=u<edge?u*u/(2*edge*(1-edge)):u>1-edge?1-(1-u)*(1-u)/(2*edge*(1-edge)):(u-edge/2)/(1-edge);
+ move('roll',0,-(reduced.matches?Math.floor(roll*4)/4:roll)*Math.max(0,rollHeight-els['credit-mask'].clientHeight+30));
+ show('end',ramp(t,49.55,.4));move('end');
+ els.seek.max=duration;els.seek.value=position;els.seek.setAttribute('aria-valuetext',position.toFixed(1)+' seconds of '+duration.toFixed(1));els.time.value=clockLabel(position)+' / '+clockLabel(duration);
+}
+function resize(){const v=els.viewport;scale=Math.min(v.clientWidth/1440,v.clientHeight/810);els.frame.style.transform=`scale(${scale})`;els.frame.style.left=(v.clientWidth-1440*scale)/2+'px';els.frame.style.top=(v.clientHeight-810*scale)/2+'px';rollHeight=els.roll.scrollHeight;measureFlows();render();}
+function pause(){playing=false;cancelAnimationFrame(raf);els.play.textContent=position>=duration?'Replay':'Play film';}
+function tick(now){if(!playing)return;position=Math.min(duration,position+Math.min((now-last)/1000,.05));last=now;render();if(position>=duration){pause();return;}raf=requestAnimationFrame(tick);}
+function play(){if(playing)return;if(position>=duration)position=0;playing=true;last=performance.now();els.play.textContent='Pause';render();raf=requestAnimationFrame(tick);}
+els.play.addEventListener('click',()=>playing?pause():play());els.replay.addEventListener('click',()=>{pause();position=0;render();play();});
+els.seek.addEventListener('input',()=>{position=Number(els.seek.value);last=performance.now();render();if(position>=duration)pause();else if(!playing)els.play.textContent='Play film';});
+els.fullscreen.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await els.viewport.requestFullscreen();}catch{els.fullscreen.textContent='Full screen unavailable';}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});reduced.addEventListener('change',render);new ResizeObserver(resize).observe(els.viewport);document.fonts.ready.then(resize);resize();
+</script></body></html>
