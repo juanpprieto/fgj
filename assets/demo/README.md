@@ -49,7 +49,7 @@ The selected encode is 1,395,034 bytes (1.40 MB), H.264 High, YUV 4:2:0,
 1440 × 810, 30 fps, with no audio track. The MP4 moov index precedes media data
 (fast start). At the tested desktop README width of 838 CSS pixels, the larger
 source preserves fine terminal text and fullscreen clarity. A 1280 × 720 CRF 22
-re-encode offered little size benefit, so retain the sharper source. GitHub controls
+re-encode was slightly larger (1,414,813 bytes), so retain the sharper source. GitHub controls
 responsive player dimensions; avoid baking a README-width reduction into the master.
 
 GitHub [recommends H.264 and allows 10 MB video uploads on free plans](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files).
