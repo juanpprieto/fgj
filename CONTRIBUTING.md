@@ -2,7 +2,8 @@
 
 fgj provides generic Forgejo operations for coding agents.
 Use [GitHub issues](https://github.com/juanpprieto/fgj/issues) and [pull requests](https://github.com/juanpprieto/fgj/pulls) for contributions.
-Read the [design](docs/design.md) before a change.
+Read the [design](docs/design.md) and [agent working agreement](AGENTS.md) before a change.
+A legacy Forgejo remote does not change the contribution destination: fetch and target GitHub main.
 
 ## Start a change
 

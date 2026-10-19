@@ -1,0 +1,61 @@
+fgj credits command inventory
+Source: repository manifest and help definitions; command names for operational verbs, help signatures for setup.
+
+fgj read comment list
+fgj read comment get
+fgj write comment add
+fgj write comment edit
+fgj write comment attach
+fgj destroy comment delete
+fgj read issue get
+fgj read issue list
+fgj write issue create
+fgj write issue edit
+fgj write issue close
+fgj write issue reopen
+fgj write dep add
+fgj write dep remove
+fgj read label list
+fgj write label create
+fgj write label edit
+fgj read milestone list
+fgj write milestone create
+fgj write milestone edit
+fgj write milestone close
+fgj write milestone reopen
+fgj read pr get
+fgj read pr list
+fgj write pr create
+fgj write pr edit
+fgj write pr close
+fgj write pr reopen
+fgj destroy pr merge
+fgj read status get
+fgj read status wait
+fgj read run get
+fgj read run log
+fgj write run rerun
+fgj read run wait
+fgj read board list
+fgj read board card
+fgj write board create
+fgj write board add
+fgj write board move
+fgj read api get
+
+fgj help [<noun> [<action>]]
+fgj version
+fgj auth [--profile <name>] [<url>]
+fgj auth web [--profile <name>]
+fgj auth status
+fgj auth default <profile>
+fgj auth remove <profile>
+fgj auth bound <profile> [on|off]
+fgj rules show <codex|claude|pi>
+fgj rules status
+fgj rules install <codex|claude|pi>
+fgj rules install pi --role <role>=<profile>
+fgj skill show
+fgj skill status
+fgj skill install <codex|claude|pi>
+fgj hook pi
