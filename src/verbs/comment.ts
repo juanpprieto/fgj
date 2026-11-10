@@ -286,7 +286,12 @@ export const commentList: ReadVerb<ListInput> = {
 				(input.contains === undefined ||
 					(c.body ?? "").toLowerCase().includes(input.contains)),
 		);
-		const items = matches.map((c) =>
+		const offset =
+			input.last === undefined
+				? input.offset
+				: Math.max(0, matches.length - input.last);
+		const limit = input.last ?? input.limit;
+		const items = matches.slice(offset, offset + limit).map((c) =>
 			bodyItem(
 				{
 					id: c.id,
@@ -305,20 +310,22 @@ export const commentList: ReadVerb<ListInput> = {
 			),
 		);
 		const arg = [input.ref.canonical];
-		const offset =
-			input.last === undefined
-				? input.offset
-				: Math.max(0, items.length - input.last);
-		const limit = input.last ?? input.limit;
+
 		// After --last, the rest of the thread is exactly what is left to show.
 		const nextFor = (end: number) =>
 			input.last === undefined
 				? commandWith({ offset: end }, arg)
 				: commandWith(
-						{ last: undefined, offset: end, limit: items.length - end },
+						{ last: undefined, offset: end, limit: matches.length - end },
 						arg,
 					);
-		return page(items, offset, limit, nextFor);
+		const shown = page(items, 0, limit, (end) => nextFor(offset + end));
+		const end = offset + shown.items.length;
+		return {
+			...shown,
+			total: matches.length,
+			next: shown.next ?? (end < matches.length ? nextFor(end) : null),
+		};
 	},
 };
 

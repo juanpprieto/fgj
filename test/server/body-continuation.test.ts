@@ -183,6 +183,35 @@ describe("complete body and discussion reads", () => {
 		}
 	});
 
+	test("selected comment windows ignore credentials outside the window", async () => {
+		const secret = "synthetic-token-1234567890";
+		const thread = await createIssue(server, repo, "Safe selected window");
+		await addComment(server, repo, thread, secret);
+		const safe = await addComment(
+			server,
+			repo,
+			thread,
+			"Safe recent discussion",
+		);
+		for (const flags of [
+			["--last", "1"],
+			["--offset", "1"],
+		]) {
+			const result = await runFgj(
+				server,
+				["read", "comment", "list", `${url}/issues/${thread}`, ...flags],
+				cwd,
+				{ FGJ_PROFILE: "t", FGJ_WRITE_TOKEN: secret },
+			);
+			const page = await expectOk<{ items: Part[]; total: number; next: null }>(
+				result,
+			);
+			expect(page.total).toBe(2);
+			expect(page.next).toBeNull();
+			expect(page.items.map((item) => item.id)).toEqual([safe]);
+		}
+	});
+
 	test("out-of-range cursors fail and multi-item/head continuations fail locally", async () => {
 		await edit("issue", "abcde");
 		const part = await read(
