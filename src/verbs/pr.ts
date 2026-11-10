@@ -1,15 +1,5 @@
 import { FgjError } from "../core/errors.ts";
-import {
-	BODY_MAX_DEFAULT,
-	BODY_MAX_LIMIT,
-	fitItem,
-	LIST_LIMIT_DEFAULT,
-	LIST_LIMIT_MAX,
-	page,
-	pick,
-	selectFields,
-	truncateBody,
-} from "../core/output.ts";
+import { LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX, page } from "../core/output.ts";
 import {
 	FAILED,
 	type LocalEnv,
@@ -23,6 +13,11 @@ import { checkedOut, type Target } from "../forgejo/target.ts";
 import {
 	assertRepo,
 	authorName,
+	BODY_AFTER_FLAG,
+	BODY_FLAGS,
+	BODY_NOTES,
+	bodyInput,
+	bodyItem,
 	branchPath,
 	DRY_RUN_FLAG,
 	type IssueRef,
@@ -67,7 +62,7 @@ interface ApiPull {
  * The output of one pull request, before `pick`: names, not objects. The state
  * is `merged` for a merged PR, and `mergeable` appears only on an open PR.
  */
-function pullFields(pull: ApiPull, bodyMax: number): Record<string, unknown> {
+function pullFields(pull: ApiPull): Record<string, unknown> {
 	const merged = pull.merged;
 	return {
 		number: pull.number,
@@ -80,7 +75,7 @@ function pullFields(pull: ApiPull, bodyMax: number): Record<string, unknown> {
 		head: pull.head.ref,
 		head_sha: pull.head.sha,
 		url: pull.html_url,
-		...truncateBody(pull.body, bodyMax),
+		body: pull.body ?? "",
 		merge_commit: merged ? pull.merge_commit_sha : undefined,
 		author: authorName({
 			original_author: pull.original_author ?? "",
@@ -144,6 +139,7 @@ interface GetInput {
 	single: boolean;
 	fields: readonly string[];
 	bodyMax: number;
+	bodyAfter: string | undefined;
 }
 
 /** `fgj read pr get <pr...>`: one or many pull requests, by number. */
@@ -154,6 +150,8 @@ export const prGet: ReadVerb<GetInput> = {
 	summary:
 		"Read one or many pull requests: state, draft, mergeable, branches, head SHA, and body.",
 	notes: [
+		...BODY_NOTES,
+		"For a normal read, finish the requested description or metadata and stop. Fetch discussion only when the task needs discussion or full context: descriptions can omit later decisions. Follow discussion next pages and each comment body_next. Metadata-only --fields omit discussion.",
 		"One PR returns the PR itself. Two or more return {items, missing}; missing lists the numbers that are not pull requests, and only when there are some.",
 		"state is open, closed, or merged. merge_commit appears only on a merged PR.",
 		"base and head are branch names; head_sha is the full SHA of the head commit.",
@@ -168,28 +166,20 @@ export const prGet: ReadVerb<GetInput> = {
 		},
 	],
 	flags: [
+		BODY_AFTER_FLAG,
 		{
 			name: "head",
 			kind: "string",
 			value: "BRANCH",
 			description: "The branch whose open pull request to read.",
 		},
-		{
-			name: "fields",
-			kind: "fields",
-			value: "a,b",
-			description: "Comma list of fields. Alone, it lists the fields.",
-		},
-		{
-			name: "body-max",
-			kind: "int",
-			description: `Most body characters per PR (1-${BODY_MAX_LIMIT}, default ${BODY_MAX_DEFAULT}).`,
-		},
+		...BODY_FLAGS,
+
 		REPO_FLAG,
 	],
 	fields: GET_FIELDS,
 	output:
-		"One PR: {number, title, state, draft, mergeable, base, head, head_sha, url, body}; mergeable only when open, merge_commit only when merged. Many: {items, missing, next}. A cut body adds body_truncated, body_chars, and a hint.",
+		"One PR: {number, title, state, draft, mergeable, base, head, head_sha, url, body}; mergeable only when open, merge_commit only when merged. Many: {items, missing, next}. A cut body adds body_truncated, body_chars, body_offset, body_revision, and body_next. discussion starts general discussion separately.",
 	examples: ["fgj read pr get 42", "fgj read pr get --head feat/12-login"],
 	prepare(args: ParsedArgs): GetInput {
 		const hint = "fgj help pr get";
@@ -220,15 +210,7 @@ export const prGet: ReadVerb<GetInput> = {
 			...(head === undefined ? {} : { head: String(head).trim() }),
 			...(remote ? { remote } : {}),
 			single: refs.length === 1 || head !== undefined,
-			fields: selectFields(args.flags.fields, GET_FIELDS, hint),
-			bodyMax: rangeFlag(
-				args,
-				"body-max",
-				1,
-				BODY_MAX_LIMIT,
-				BODY_MAX_DEFAULT,
-				hint,
-			),
+			...bodyInput(args, GET_FIELDS, hint),
 		};
 	},
 	remoteOf(input) {
@@ -267,15 +249,7 @@ export const prGet: ReadVerb<GetInput> = {
 					ctx.commandFor("read pr list", [], { state: "all" }),
 				);
 			}
-			const item = fitItem(pick(pullFields(pull, input.bodyMax), input.fields));
-			return item.body_truncated
-				? {
-						...item,
-						hint: ctx.commandFor("read pr get", [String(pull.number)], {
-							"body-max": String(BODY_MAX_LIMIT),
-						}),
-					}
-				: item;
+			return bodyItem(pullFields(pull), input, ctx, "pr", pull.number);
 		}
 		const readOne = async (n: number) => {
 			let pull: ApiPull;
@@ -285,7 +259,7 @@ export const prGet: ReadVerb<GetInput> = {
 				if (err instanceof FgjError && err.code === "not_found") return null;
 				throw err;
 			}
-			return fitItem(pick(pullFields(pull, input.bodyMax), input.fields));
+			return bodyItem(pullFields(pull), input, ctx, "pr", pull.number);
 		};
 		// The PR endpoint answers 404 for an issue too; name it when it is one.
 		const missingOne = async (ref: IssueRef) => {
@@ -378,17 +352,8 @@ export const prList: ReadVerb<ListInput> = {
 			value: "NAME",
 			description: "Only pull requests with this label.",
 		},
-		{
-			name: "fields",
-			kind: "fields",
-			value: "a,b",
-			description: "Comma list of fields. Alone, it lists the fields.",
-		},
-		{
-			name: "body-max",
-			kind: "int",
-			description: `Most body characters per PR (1-${BODY_MAX_LIMIT}, default ${BODY_MAX_DEFAULT}).`,
-		},
+		...BODY_FLAGS,
+
 		{
 			name: "limit",
 			kind: "int",
@@ -439,15 +404,7 @@ export const prList: ReadVerb<ListInput> = {
 			...text("base"),
 			...text("author"),
 			...text("label"),
-			fields: selectFields(args.flags.fields, LIST_FIELDS, hint),
-			bodyMax: rangeFlag(
-				args,
-				"body-max",
-				1,
-				BODY_MAX_LIMIT,
-				BODY_MAX_DEFAULT,
-				hint,
-			),
+			...bodyInput(args, LIST_FIELDS, hint),
 			limit: rangeFlag(
 				args,
 				"limit",
@@ -459,7 +416,8 @@ export const prList: ReadVerb<ListInput> = {
 			offset: rangeFlag(args, "offset", 0, Number.MAX_SAFE_INTEGER, 0, hint),
 		};
 	},
-	async run(input, { target, api, commandWith, commandFor }) {
+	async run(input, ctx) {
+		const { target, api, commandWith, commandFor } = ctx;
 		// The server takes label ids only: a name gives HTTP 500.
 		const label =
 			input.label === undefined
@@ -504,7 +462,7 @@ export const prList: ReadVerb<ListInput> = {
 			throw err;
 		}
 		const items = window.map((pull) =>
-			fitItem(pick(pullFields(pull, input.bodyMax), input.fields)),
+			bodyItem(pullFields(pull), input, ctx, "pr", pull.number),
 		);
 		const next = (at: number) => commandWith({ offset: at });
 		const shown = page(items, 0, items.length, (end) =>
@@ -840,7 +798,7 @@ export const prEdit: WriteVerb<EditInput> = {
 	summary:
 		"Change a pull request's title, body, or draft state. What is already so returns changed:false.",
 	notes: [
-		"--body-file replaces the whole body. To change part of it, read it whole first with pr get --body-max 20000.",
+		"--body-file replaces the whole body. To change part of it, read pr get and follow every body_next first.",
 		"--draft adds the WIP: title prefix, and --ready removes it. --title gives the text without the prefix; a draft stays a draft.",
 	],
 	args: [{ name: "pr", description: "Pull request number, or its URL." }],

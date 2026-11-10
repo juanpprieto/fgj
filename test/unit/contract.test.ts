@@ -1,12 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { parseArgs } from "../../src/core/args.ts";
 import type { FgjError } from "../../src/core/errors.ts";
-import { truncateBody } from "../../src/core/output.ts";
+import { fitItem } from "../../src/core/output.ts";
 import { createRedactor } from "../../src/core/redact.ts";
 import type { Verb } from "../../src/core/verb.ts";
 import { commentAdd, commentList } from "../../src/verbs/comment.ts";
 import {
 	authorName,
+	bodyItem,
 	COMMENT_ARG_SHAPE,
 	commentRef,
 	issueRef,
@@ -170,7 +171,9 @@ describe("COMMENT_ARG_SHAPE", () => {
 	});
 });
 
-describe("truncateBody", () => {
+describe("body parts", () => {
+	const truncateBody = (body: string | null, max: number) =>
+		fitItem({ body: body ?? "" }, { max, command: "fgj read issue get 1" });
 	test("leaves a short body with no markers", () => {
 		expect(truncateBody("abc", 3)).toEqual({ body: "abc" });
 		expect(truncateBody(null, 3)).toEqual({ body: "" });
@@ -179,7 +182,7 @@ describe("truncateBody", () => {
 	test("counts code points, so a cut never splits an emoji", () => {
 		// Each emoji is 2 UTF-16 units but 1 character.
 		expect(truncateBody("😀😀😀", 3)).toEqual({ body: "😀😀😀" });
-		expect(truncateBody("😀😀😀", 2)).toEqual({
+		expect(truncateBody("😀😀😀", 2)).toMatchObject({
 			body: "😀😀",
 			body_truncated: true,
 			body_chars: 3,
@@ -212,4 +215,58 @@ describe("authorName", () => {
 		);
 		expect(authorName({ original_author: "", user: null })).toBeNull();
 	});
+});
+
+test("body parts reconstruct escaped Unicode beyond 20000 characters", () => {
+	const body = '😀"\\\n'.repeat(16000);
+	let after: string | undefined;
+	let joined = "";
+	do {
+		const part = fitItem(
+			{ body },
+			{ max: 20000, after, command: "fgj read issue get 1 --fields body" },
+		);
+		expect(JSON.stringify(part).length).toBeLessThanOrEqual(27000);
+		expect(String(part.body).length).toBeGreaterThan(0);
+		joined += part.body;
+		if (joined !== body) expect(part.body_next).toBeString();
+		after =
+			typeof part.body_next === "string"
+				? part.body_next.split(" --body-after ")[1]
+				: undefined;
+	} while (after);
+	expect(joined).toBe(body);
+});
+
+test("body continuations refuse known credentials before splitting", () => {
+	const secret = "synthetic-token-1234567890";
+	const ctx = {
+		target: {
+			baseUrl: "https://forge.example",
+			owner: "o",
+			name: "r",
+			repoFromFlag: false,
+			hostSource: "url" as const,
+		},
+		commandFor: () => "fgj read issue get 1",
+		holdsSecret: (text: string) => text.includes(secret),
+	};
+	expect(() =>
+		bodyItem(
+			{ body: secret },
+			{ fields: ["body"], bodyMax: 5 },
+			ctx,
+			"issue",
+			1,
+		),
+	).toThrow("known credential");
+	expect(
+		bodyItem(
+			{ body: secret, number: 1 },
+			{ fields: ["number"], bodyMax: 5 },
+			ctx,
+			"issue",
+			1,
+		),
+	).toEqual({ number: 1 });
 });

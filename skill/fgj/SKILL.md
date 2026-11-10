@@ -18,7 +18,6 @@ calls run with no approval prompt, and `destroy` calls ask a human.
   class is always the first word. Take it from help.
 
 ## Write each call
-
 - Run one plain fgj command per call. fgj output is already small, so it needs no pipe,
   `jq`, redirect, or `&&` chain.
 - Write each body to a file first, then pass `--body-file /absolute/path`.
@@ -26,13 +25,15 @@ calls run with no approval prompt, and `destroy` calls ask a human.
 - Before a `destroy` call, run it with `--dry-run` and show the plan to the human.
 
 ## Read the result
-
 - stdout is one JSON object. In a verb's result, `as` names the Forgejo account that
   acted. Check that it is the account for your role.
-- A result with more to show has `next`. Run `next` exactly as given. When `next` is
-  `null` or absent, you have everything.
-- A body with `body_truncated` is cut. Run the result's `hint`, or follow its `note`
-  when it has no hint.
+- `next` continues items only; null or absent means the selected list is complete.
+- Complete requested bodies via `body_next`. For a normal read, stop after the description or metadata.
+- Fetch `discussion` only when the task needs discussion or full context; descriptions can omit later decisions.
+  Follow discussion `next` and comment `body_next`. `--last` and filters select subsets.
+- Concatenate body parts unchanged. A continuation that detects an edit returns a restart hint: discard earlier
+  parts of that body. Never replace a body from incomplete text. These reads are not
+  a frozen snapshot and exclude formal PR reviews, inline feedback and attachments.
 - A write returns `changed`. `changed:false` means the change is already there, so a
   retry is safe and posts nothing.
 - A write on many items returns one entry per item. An entry with `error` failed and the
@@ -55,7 +56,6 @@ stderr holds `{error:{code,message,hint}}`, and `hint` is a runnable fgj command
 `fgj write board create Onboarding` creates basic Kanban or reuses one open name match. Run `fgj help board create` for template choices, refusal rules, and login prerequisites.
 
 ## Identity
-
 The harness sets your Forgejo account through `FGJ_PROFILE`. Add `--as <profile>` only
 when your instructions name a profile. Leave `FGJ_PROFILE` to the harness.
 

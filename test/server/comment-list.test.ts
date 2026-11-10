@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { commandsRun } from "../../src/hooks/shell.ts";
 import {
 	addComment,
 	createIssue,
@@ -22,6 +23,7 @@ interface Comment {
 	body?: string;
 	body_truncated?: true;
 	body_chars?: number;
+	body_next?: string;
 }
 
 interface CommentPage {
@@ -33,7 +35,8 @@ interface CommentPage {
 }
 
 /** Splits a `next` or `hint` command into the argv after `fgj`. */
-const argvOf = (command: string) => command.split(" ").slice(1);
+const argvOf = (command: string) =>
+	commandsRun(command)[0]?.words.slice(1) ?? [];
 
 describe("fgj read comment list", () => {
 	let server: TestServer;
@@ -186,31 +189,12 @@ describe("fgj read comment list", () => {
 		expect(c?.body_truncated).toBe(true);
 		expect(c?.body_chars).toBe(5000);
 		expect(Array.from(c?.body ?? "")).toHaveLength(4000);
-		expect(out.hint).toBe(
-			`fgj read comment list ${long} --limit 1 --offset 0 --body-max 20000`,
+		expect(c?.body_next).toBeString();
+		const rest = await expectOk<Comment>(
+			await runFgj(server, argvOf(c?.body_next ?? ""), cwd),
 		);
-
-		const full = await expectOk<CommentPage>(
-			await runFgj(server, argvOf(out.hint ?? ""), cwd),
-		);
-		expect(full.items[0]?.body).toBe(body);
-		expect(full.items[0]?.body_truncated).toBeUndefined();
-	});
-
-	test("a body over the 20000-character limit has no looping hint", async () => {
-		const huge = await createIssue(server, repo, "Huge body");
-		await addComment(server, repo, huge, "z".repeat(25_000));
-		const cwd = await makeWorkDir(server, repo);
-		const first = await expectOk<CommentPage & { note?: string }>(
-			await list(cwd, String(huge)),
-		);
-		expect(first.hint).toBeDefined();
-		const full = await expectOk<CommentPage & { note?: string }>(
-			await runFgj(server, argvOf(first.hint ?? ""), cwd),
-		);
-		expect(full.items[0]?.body_chars).toBe(25_000);
-		expect(full.hint).toBeUndefined();
-		expect(full.note).toContain("longer than 20000 characters");
+		expect(c?.body + String(rest.body)).toBe(body);
+		expect(rest.body_next).toBeUndefined();
 	});
 
 	test("a body full of JSON-escaped characters still fits under the cap", async () => {

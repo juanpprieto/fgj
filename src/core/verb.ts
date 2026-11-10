@@ -95,6 +95,14 @@ export interface WaitTimes {
 export interface VerbContext<Api, Web extends WebReader = WebReader> {
 	target: Target;
 	api: Api;
+	/**
+	 * Detects known credentials before output is split into parts.
+	 * @param text - The complete source text.
+	 * @returns Whether a registered credential occurs in the text.
+	 * @example
+	 * ctx.holdsSecret(body); // false
+	 */
+	holdsSecret(text: string): boolean;
 	/** Shorter wait times for tests, from `FGJ_WAIT_TIMES`; wait verbs use their own otherwise. */
 	waitTimes?: WaitTimes;
 	/**

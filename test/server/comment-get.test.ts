@@ -21,7 +21,7 @@ interface Got {
 	body: string;
 	body_truncated?: true;
 	body_chars?: number;
-	note?: string;
+	body_next?: string;
 	as: string;
 }
 
@@ -78,14 +78,14 @@ describe("fgj read comment get", () => {
 		expect(fields.fields).toContain("created_at");
 	});
 
-	test("a body over the 20000-character limit is cut, and a note warns against editing from it", async () => {
+	test("a body over the 20000-character limit is cut, and exposes the next part", async () => {
 		const body = "y".repeat(21_000);
 		const id = await addComment(server, repo, issue, body);
 		const out = await expectOk<Got>(await get(cwd, String(id)));
 		expect(out.body_truncated).toBe(true);
 		expect(out.body_chars).toBe(21_000);
 		expect(Array.from(out.body).length).toBeLessThanOrEqual(20_000);
-		expect(out.note).toMatch(/do not edit/i);
+		expect(out.body_next).toContain(" --body-after ");
 	});
 
 	test("a comment URL whose issue number does not match fails with usage", async () => {
