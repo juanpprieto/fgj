@@ -235,7 +235,7 @@ export const issueGet: ReadVerb<GetInput> = {
 		"Read one or many issues or pull requests: title, state, labels, and body.",
 	notes: [
 		...BODY_NOTES,
-		"Descriptions can omit later decisions and status. After all body_next parts, run discussion and follow its next pages and each comment body_next. Metadata-only --fields reads omit discussion.",
+		"For full context, follow all body_next parts, then discussion, its next pages and each comment body_next: descriptions can omit later decisions. Description-only or metadata requests need no discussion read. Metadata-only --fields omit discussion.",
 		"One issue returns the issue itself. Two or more return {items, missing}; missing lists the numbers that do not exist, and only when there are some.",
 		"depends_on and blocks cost one request each per issue, so ask for them only when needed. An issue in another repository shows as owner/name#number.",
 		"A pull request carries pr:true.",

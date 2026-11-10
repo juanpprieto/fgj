@@ -151,7 +151,7 @@ export const prGet: ReadVerb<GetInput> = {
 		"Read one or many pull requests: state, draft, mergeable, branches, head SHA, and body.",
 	notes: [
 		...BODY_NOTES,
-		"Descriptions can omit later decisions and status. After all body_next parts, run discussion and follow its next pages and each comment body_next. Metadata-only --fields reads omit discussion.",
+		"For full context, follow all body_next parts, then discussion, its next pages and each comment body_next: descriptions can omit later decisions. Description-only or metadata requests need no discussion read. Metadata-only --fields omit discussion.",
 		"One PR returns the PR itself. Two or more return {items, missing}; missing lists the numbers that are not pull requests, and only when there are some.",
 		"state is open, closed, or merged. merge_commit appears only on a merged PR.",
 		"base and head are branch names; head_sha is the full SHA of the head commit.",
