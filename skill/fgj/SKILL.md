@@ -28,9 +28,9 @@ calls run with no approval prompt, and `destroy` calls ask a human.
 - stdout is one JSON object. In a verb's result, `as` names the Forgejo account that
   acted. Check that it is the account for your role.
 - `next` continues items only; null or absent means the selected list is complete.
-- For full context, read the description and every `body_next`, then run `discussion`:
-  descriptions can omit later decisions. Follow discussion `next` and comment `body_next`.
-  A description-only or metadata request needs no discussion read. `--last` and filters select subsets.
+- Complete requested bodies via `body_next`. For a normal read, stop after the description or metadata.
+- Fetch `discussion` only when the task needs discussion or full context; descriptions can omit later decisions.
+  Follow discussion `next` and comment `body_next`. `--last` and filters select subsets.
 - Concatenate body parts unchanged. A continuation that detects an edit returns a restart hint: discard earlier
   parts of that body. Never replace a body from incomplete text. These reads are not
   a frozen snapshot and exclude formal PR reviews, inline feedback and attachments.
