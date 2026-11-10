@@ -7,6 +7,7 @@ import type { Verb } from "../../src/core/verb.ts";
 import { commentAdd, commentList } from "../../src/verbs/comment.ts";
 import {
 	authorName,
+	bodyItem,
 	COMMENT_ARG_SHAPE,
 	commentRef,
 	issueRef,
@@ -235,4 +236,37 @@ test("body parts reconstruct escaped Unicode beyond 20000 characters", () => {
 				: undefined;
 	} while (after);
 	expect(joined).toBe(body);
+});
+
+test("body continuations refuse known credentials before splitting", () => {
+	const secret = "synthetic-token-1234567890";
+	const ctx = {
+		target: {
+			baseUrl: "https://forge.example",
+			owner: "o",
+			name: "r",
+			repoFromFlag: false,
+			hostSource: "url" as const,
+		},
+		commandFor: () => "fgj read issue get 1",
+		holdsSecret: (text: string) => text.includes(secret),
+	};
+	expect(() =>
+		bodyItem(
+			{ body: secret },
+			{ fields: ["body"], bodyMax: 5 },
+			ctx,
+			"issue",
+			1,
+		),
+	).toThrow("known credential");
+	expect(
+		bodyItem(
+			{ body: secret, number: 1 },
+			{ fields: ["number"], bodyMax: 5 },
+			ctx,
+			"issue",
+			1,
+		),
+	).toEqual({ number: 1 });
 });

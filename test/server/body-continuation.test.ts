@@ -158,6 +158,31 @@ describe("complete body and discussion reads", () => {
 			expect(httpCalls(result)).toEqual([]);
 		});
 	}
+	test("registered credentials are refused before splitting, for every body read path", async () => {
+		const secret = "synthetic-token-1234567890";
+		const body = `prefix ${secret} suffix`;
+		for (const noun of ["issue", "pr", "comment"]) await edit(noun, body);
+		for (const args of [
+			...["issue", "pr", "comment"].map((noun) => [
+				"read",
+				noun,
+				"get",
+				target(noun),
+			]),
+			["read", "comment", "list", target("issue")],
+			["read", "issue", "get", target("issue"), `${url}/issues/${pull}`],
+		]) {
+			const result = await runFgj(server, [...args, "--body-max", "5"], cwd, {
+				FGJ_PROFILE: "t",
+				FGJ_WRITE_TOKEN: secret,
+			});
+			const error = await expectError(result, "conflict", 5);
+			expect(error.message).toContain("known credential");
+			expect(result.stdout).toBe("");
+			expect(result.stderr).not.toContain(secret);
+		}
+	});
+
 	test("out-of-range cursors fail and multi-item/head continuations fail locally", async () => {
 		await edit("issue", "abcde");
 		const part = await read(

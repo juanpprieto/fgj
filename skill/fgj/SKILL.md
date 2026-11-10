@@ -31,7 +31,7 @@ calls run with no approval prompt, and `destroy` calls ask a human.
 - Read the description, follow every `body_next`, then run `discussion`: descriptions
   can omit later decisions. Follow discussion `next` pages and each comment `body_next`.
   `--last` and filters select subsets. Metadata-only reads omit discussion.
-- Concatenate body parts unchanged. An edit returns a restart hint: discard earlier
+- Concatenate body parts unchanged. A continuation that detects an edit returns a restart hint: discard earlier
   parts of that body. Never replace a body from incomplete text. These reads are not
   a frozen snapshot and exclude formal PR reviews, inline feedback and attachments.
 - A write returns `changed`. `changed:false` means the change is already there, so a

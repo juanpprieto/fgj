@@ -598,7 +598,7 @@ export const commentEdit: WriteVerb<EditInput> = {
 		"Replace the body of your own comment from a file. The same body returns changed:false.",
 	notes: [
 		"Another author's comment fails with conflict (exit 5), and nothing changes.",
-		"To change part of a comment, run comment get first: it returns the whole body.",
+		"To change part of a comment, run comment get and follow every body_next first.",
 	],
 	args: [COMMENT_ARG],
 	flags: [BODY_FILE_FLAG, DRY_RUN_FLAG, REPO_FLAG],

@@ -231,6 +231,9 @@ fgj does not support Gitea, and its tests cover only Forgejo 16.0.5.
     and `body_next`, the exact command for its next part. Later parts retain the
     offset, length and revision even at the end. Concatenate `body` values unchanged.
     JSON escaping can shorten a part further; the next offset uses the actual part.
+    A selected body containing a known credential fails with conflict before any
+    part is returned, so splitting cannot bypass the output redactor. Metadata-only
+    reads still work. Remove the credential at the source before reading that body.
   - `--body-after HASH:OFFSET` is an opaque continuation from `body_next`, accepted
     only by single-target issue/pr/comment get with body selected, never `--head`.
     Malformed cursors fail locally. A changed body fails with conflict and a restart

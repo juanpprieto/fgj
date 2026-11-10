@@ -637,11 +637,22 @@ export function bodyItem(
 		bodyMax: number;
 		bodyAfter?: string | undefined;
 	},
-	ctx: Pick<VerbContext<ReadApi>, "target" | "commandFor">,
+	ctx: Pick<VerbContext<ReadApi>, "target" | "commandFor" | "holdsSecret">,
 	noun: "issue" | "pr" | "comment",
 	number: number,
 	id?: number,
 ): Record<string, unknown> {
+	if (
+		input.fields.includes("body") &&
+		typeof item.body === "string" &&
+		ctx.holdsSecret(item.body)
+	) {
+		throw new FgjError(
+			"conflict",
+			"Body contains a known credential. Remove it at the source before reading the body.",
+			`fgj help ${noun} get`,
+		);
+	}
 	const { target, commandFor } = ctx;
 	const url = `${target.baseUrl}/${target.owner}/${target.name}/${noun === "pr" ? "pulls" : "issues"}/${number}`;
 	const command = commandFor(
