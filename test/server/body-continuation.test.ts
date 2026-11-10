@@ -212,6 +212,25 @@ describe("complete body and discussion reads", () => {
 		}
 	});
 
+	test("PR discussion bodies continue from both pages and comment URLs", async () => {
+		const body = "PR decision.\n" + "x".repeat(60000);
+		const id = await addComment(server, repo, pull, body);
+		const page = await expectOk<{ items: Part[] }>(
+			await runFgj(
+				server,
+				["read", "comment", "list", `${url}/pulls/${pull}`],
+				cwd,
+				{ FGJ_PROFILE: "t" },
+			),
+		);
+		const part = page.items.find((item) => item.id === id) as Part;
+		expect(await complete(part)).toBe(body);
+		const direct = await read(
+			`fgj read comment get '${url}/pulls/${pull}#issuecomment-${id}'`,
+		);
+		expect(await complete(direct)).toBe(body);
+	});
+
 	test("out-of-range cursors fail and multi-item/head continuations fail locally", async () => {
 		await edit("issue", "abcde");
 		const part = await read(

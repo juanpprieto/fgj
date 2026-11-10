@@ -47,8 +47,10 @@ interface ApiComment {
 	created_at: string;
 	updated_at: string;
 	html_url: string;
-	/** The issue's API URL. It ends in the issue number, for a PR comment too. */
+	/** The parent issue URL, empty for a PR comment. */
 	issue_url: string;
+	/** The parent PR URL, empty for an issue comment. */
+	pull_request_url?: string;
 	/** The comment's attachments. */
 	assets?: {
 		name: string;
@@ -141,9 +143,9 @@ export function fitAttachmentTexts(
 	return shown(low);
 }
 
-/** The issue number at the end of a comment's `issue_url`. */
+/** The issue or PR number at the end of a comment's parent URL. */
 function issueOf(c: ApiComment): number {
-	return Number(/(\d+)$/.exec(c.issue_url)?.[1]);
+	return Number(/(\d+)$/.exec(c.issue_url || c.pull_request_url || "")?.[1]);
 }
 
 const COMMENT_FIELDS = {
