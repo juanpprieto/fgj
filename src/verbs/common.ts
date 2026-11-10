@@ -1,8 +1,16 @@
 import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { FgjError } from "../core/errors.ts";
-import { BODY_MAX_LIMIT, page } from "../core/output.ts";
+import {
+	BODY_MAX_DEFAULT,
+	BODY_MAX_LIMIT,
+	fitItem,
+	page,
+	pick,
+	selectFields,
+} from "../core/output.ts";
 import type {
+	FieldSpec,
 	FlagSpec,
 	FlagValue,
 	LocalEnv,
@@ -538,20 +546,20 @@ export async function assertRepo(
  * every item is missing, it checks the repository, so a wrong repository never
  * reads as a list of missing numbers.
  *
- * @param input - The references, whether one was given, and `--body-max`.
+ * @param input - The references and whether one was given.
  * @param ctx - The verb context.
  * @param readOne - Reads one item as output, or `null` when it does not exist.
  * @param missingOne - Builds the error for one missing number. It may throw a
  *   more exact error itself, such as "an issue, not a pull request".
  * @param helpHint - The verb's help command, for a missing repository.
- * @returns The item, or `{items, missing, next, hint}`.
+ * @returns The item, or `{items, missing, next}`.
  * @throws {FgjError} The error from `missingOne` for one missing number, or
  *   not_found for a missing repository.
  * @example
  * return readMany(input, ctx, (n) => readIssue(input, ctx, n), missing, "fgj help issue get");
  */
 export async function readMany(
-	input: { refs: IssueRef[]; single: boolean; bodyMax: number },
+	input: { refs: IssueRef[]; single: boolean },
 	ctx: VerbContext<ReadApi>,
 	readOne: (n: number) => Promise<Record<string, unknown> | null>,
 	missingOne: (ref: IssueRef) => Promise<FgjError>,
@@ -562,10 +570,6 @@ export async function readMany(
 	if (!input.single && read.every((i) => i === null)) {
 		await assertRepo(ctx.api, ctx.target, helpHint);
 	}
-	const bodyHint = (ref: IssueRef) =>
-		input.bodyMax < BODY_MAX_LIMIT
-			? ctx.commandWith({ "body-max": BODY_MAX_LIMIT }, [ref.canonical])
-			: undefined;
 	if (input.single) {
 		const ref = unique[0] as IssueRef;
 		const item = read[0];
@@ -575,8 +579,7 @@ export async function readMany(
 			await assertRepo(ctx.api, ctx.target, helpHint);
 			throw error;
 		}
-		const hint = item.body_truncated ? bodyHint(ref) : undefined;
-		return hint ? { ...item, hint } : item;
+		return item;
 	}
 	const found = unique.flatMap((ref, i) => {
 		const item = read[i];
@@ -593,14 +596,123 @@ export async function readMany(
 				found.slice(end).map((f) => f.ref.canonical),
 			),
 	);
-	const cut = found.find(
-		(f, i) => i < shown.items.length && f.item.body_truncated,
-	);
-	const hint = cut ? bodyHint(cut.ref) : undefined;
 	return {
 		items: shown.items,
 		...(missing.length > 0 ? { missing } : {}),
 		...(shown.next ? { next: shown.next } : {}),
-		...(hint ? { hint } : {}),
+	};
+}
+
+/** Continuation input on individual body reads. */
+export const BODY_AFTER_FLAG: FlagSpec = {
+	name: "body-after",
+	kind: "string",
+	value: "CURSOR",
+	description:
+		"Use the exact body_next command to read the next part of an unchanged body.",
+};
+
+/** Guidance shared by body reads. */
+export const BODY_NOTES = [
+	"Follow each body's body_next and concatenate body parts unchanged. next advances items only. --body-after detects body edits and returns a restart command; discard earlier parts of that body. Reads are not a frozen discussion snapshot.",
+	"Never replace a body from incomplete text. --last and filters select a subset of discussion. General discussion excludes formal PR reviews, inline code comments, and attachment contents.",
+];
+
+/**
+ * Selects fields and fits a body with commands pinned to the resolved target.
+ * @param item - The item's full output fields, including its unmodified body.
+ * @param input - Field selection, part size and optional continuation.
+ * @param ctx - Resolved target and identity-preserving command builder.
+ * @param noun - The individual read verb for the body.
+ * @param number - Issue/PR number, or the comment's parent issue number.
+ * @param id - Comment id when reading a comment body.
+ * @returns Selected fields, body continuation, and separate discussion discovery.
+ * @example
+ * bodyItem({ body: "abc" }, input, ctx, "issue", 1);
+ */
+export function bodyItem(
+	item: Record<string, unknown>,
+	input: {
+		fields: readonly string[];
+		bodyMax: number;
+		bodyAfter?: string | undefined;
+	},
+	ctx: Pick<VerbContext<ReadApi>, "target" | "commandFor">,
+	noun: "issue" | "pr" | "comment",
+	number: number,
+	id?: number,
+): Record<string, unknown> {
+	const { target, commandFor } = ctx;
+	const url = `${target.baseUrl}/${target.owner}/${target.name}/${noun === "pr" ? "pulls" : "issues"}/${number}`;
+	const command = commandFor(
+		`read ${noun} get`,
+		[id === undefined ? url : `${url}#issuecomment-${id}`],
+		{ fields: "body", "body-max": String(input.bodyMax) },
+	);
+	return fitItem(
+		{
+			...pick(item, input.fields),
+			...(noun !== "comment" && input.fields.includes("body")
+				? { discussion: commandFor("read comment list", [url]) }
+				: {}),
+		},
+		{ max: input.bodyMax, after: input.bodyAfter, command },
+	);
+}
+
+/** Shared field selection and bounded body size for issue, PR and comment reads. */
+export const BODY_FLAGS: readonly FlagSpec[] = [
+	{
+		name: "fields",
+		kind: "fields",
+		value: "a,b",
+		description: "Comma list of fields. Alone, lists the fields.",
+	},
+	{
+		name: "body-max",
+		kind: "int",
+		description:
+			"Most body characters per part (1-20000; default 4000, or 20000 for comment get).",
+	},
+];
+
+/**
+ * Prepares the common body read options without sending requests.
+ * @param args - Parsed read arguments.
+ * @param fields - Available and default fields.
+ * @param hint - Help command for invalid options.
+ * @param defaultMax - Initial part size.
+ * @returns Selected fields, bounded part size and validated continuation.
+ * @example
+ * bodyInput(args, fields, "fgj help issue get");
+ */
+export function bodyInput(
+	args: ParsedArgs,
+	fields: FieldSpec,
+	hint: string,
+	defaultMax = BODY_MAX_DEFAULT,
+) {
+	const selected = selectFields(args.flags.fields, fields, hint);
+	const after = args.flags["body-after"];
+	const match =
+		typeof after === "string" && /^[a-f0-9]{64}:([1-9][0-9]*)$/.exec(after);
+	if (
+		after !== undefined &&
+		(!match ||
+			!Number.isSafeInteger(Number(match[1])) ||
+			args.positionals.length !== 1 ||
+			args.flags.head !== undefined ||
+			!selected.includes("body"))
+	) {
+		throw new FgjError(
+			"usage",
+			"Use --body-after from body_next with one item and its body selected.",
+			hint,
+		);
+	}
+	return {
+		fields: selected,
+		bodyMax: rangeFlag(args, "body-max", 1, BODY_MAX_LIMIT, defaultMax, hint),
+		bodyAfter: after === undefined ? undefined : String(after),
 	};
 }

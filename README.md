@@ -248,7 +248,7 @@ the arguments, flags, fields, output, examples, and notes. Help sends no request
 | Command | What it does |
 |---|---|
 | `fgj read comment list <issue>` | List the comments on an issue or pull request, oldest first. |
-| `fgj read comment get <comment>` | Read one comment, with its whole body. |
+| `fgj read comment get <comment>` | Read one comment, with continuation for a long body. |
 | `fgj write comment add <issue> --body-file PATH` | Add a comment from a file. A repeat of your latest comment returns changed:false. |
 | `fgj write comment edit <comment> --body-file PATH` | Replace the body of your own comment from a file. The same body returns changed:false. |
 | `fgj write comment attach <comment> --file PATH` | Upload a text file to your own comment. The same file again returns changed:false. |

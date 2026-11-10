@@ -1,15 +1,5 @@
 import { FgjError } from "../core/errors.ts";
-import {
-	BODY_MAX_DEFAULT,
-	BODY_MAX_LIMIT,
-	fitItem,
-	LIST_LIMIT_DEFAULT,
-	LIST_LIMIT_MAX,
-	page,
-	pick,
-	selectFields,
-	truncateBody,
-} from "../core/output.ts";
+import { LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX, page } from "../core/output.ts";
 import {
 	FAILED,
 	type LocalEnv,
@@ -22,6 +12,11 @@ import type { ReadApi, WriteApi } from "../forgejo/client.ts";
 import type { Target } from "../forgejo/target.ts";
 import {
 	authorName,
+	BODY_AFTER_FLAG,
+	BODY_FLAGS,
+	BODY_NOTES,
+	bodyInput,
+	bodyItem,
 	DRY_RUN_FLAG,
 	type IssueRef,
 	issueRefs,
@@ -62,6 +57,25 @@ interface ApiIssue {
 	pull_request: object | null;
 	/** Set on the items of a dependency list. */
 	repository?: { full_name: string };
+}
+
+/** The shared issue output before field selection. */
+function issueFields(issue: ApiIssue): Record<string, unknown> {
+	return {
+		number: issue.number,
+		title: issue.title,
+		state: issue.state,
+		labels: (issue.labels ?? []).map((l) => l.name),
+		body: issue.body ?? "",
+		author: authorName(issue),
+		assignees: (issue.assignees ?? []).map((a) => a.login),
+		milestone: issue.milestone?.title ?? null,
+		comments: issue.comments,
+		created_at: issue.created_at,
+		updated_at: issue.updated_at,
+		closed_at: issue.closed_at,
+		url: issue.html_url,
+	};
 }
 
 /** The most issues that one `issue get` reads. */
@@ -168,6 +182,7 @@ interface GetInput {
 	single: boolean;
 	fields: readonly string[];
 	bodyMax: number;
+	bodyAfter: string | undefined;
 }
 
 /**
@@ -197,27 +212,16 @@ async function readIssue(
 			? linked(api, target, number, "blocks")
 			: undefined,
 	]);
-	const item = fitItem(
-		pick(
-			{
-				number: issue.number,
-				title: issue.title,
-				state: issue.state,
-				labels: (issue.labels ?? []).map((l) => l.name),
-				...truncateBody(issue.body, input.bodyMax),
-				author: authorName(issue),
-				assignees: (issue.assignees ?? []).map((a) => a.login),
-				milestone: issue.milestone?.title ?? null,
-				comments: issue.comments,
-				created_at: issue.created_at,
-				updated_at: issue.updated_at,
-				closed_at: issue.closed_at,
-				url: issue.html_url,
-				depends_on: dependsOn,
-				blocks,
-			},
-			input.fields,
-		),
+	const item = bodyItem(
+		{
+			...issueFields(issue),
+			depends_on: dependsOn,
+			blocks,
+		},
+		input,
+		ctx,
+		"issue",
+		issue.number,
 	);
 	return issue.pull_request ? { ...item, pr: true } : item;
 }
@@ -230,6 +234,8 @@ export const issueGet: ReadVerb<GetInput> = {
 	summary:
 		"Read one or many issues or pull requests: title, state, labels, and body.",
 	notes: [
+		...BODY_NOTES,
+		"Descriptions can omit later decisions and status. After all body_next parts, run discussion and follow its next pages and each comment body_next. Metadata-only --fields reads omit discussion.",
 		"One issue returns the issue itself. Two or more return {items, missing}; missing lists the numbers that do not exist, and only when there are some.",
 		"depends_on and blocks cost one request each per issue, so ask for them only when needed. An issue in another repository shows as owner/name#number.",
 		"A pull request carries pr:true.",
@@ -242,22 +248,14 @@ export const issueGet: ReadVerb<GetInput> = {
 		},
 	],
 	flags: [
-		{
-			name: "fields",
-			kind: "fields",
-			value: "a,b",
-			description: "Comma list of fields. Alone, it lists the fields.",
-		},
-		{
-			name: "body-max",
-			kind: "int",
-			description: `Most body characters per issue (1-${BODY_MAX_LIMIT}, default ${BODY_MAX_DEFAULT}).`,
-		},
+		BODY_AFTER_FLAG,
+		...BODY_FLAGS,
+
 		REPO_FLAG,
 	],
 	fields: GET_FIELDS,
 	output:
-		"One issue: {number, title, state, labels, body}. Many: {items, missing, next}. A cut body adds body_truncated, body_chars, and a hint.",
+		"One issue: {number, title, state, labels, body}. Many: {items, missing, next}. A cut body adds body_truncated, body_chars, body_offset, body_revision, and body_next. discussion starts general discussion separately.",
 	examples: [
 		"fgj read issue get 157",
 		"fgj read issue get 157 158 --fields number,state,depends_on",
@@ -269,15 +267,7 @@ export const issueGet: ReadVerb<GetInput> = {
 			refs,
 			...(remote ? { remote } : {}),
 			single: refs.length === 1,
-			fields: selectFields(args.flags.fields, GET_FIELDS, hint),
-			bodyMax: rangeFlag(
-				args,
-				"body-max",
-				1,
-				BODY_MAX_LIMIT,
-				BODY_MAX_DEFAULT,
-				hint,
-			),
+			...bodyInput(args, GET_FIELDS, hint),
 		};
 	},
 	remoteOf(input) {
@@ -434,17 +424,8 @@ export const issueList: ReadVerb<ListInput> = {
 			value: "TEXT",
 			description: "Only issues that hold these words.",
 		},
-		{
-			name: "fields",
-			kind: "fields",
-			value: "a,b",
-			description: "Comma list of fields. Alone, it lists the fields.",
-		},
-		{
-			name: "body-max",
-			kind: "int",
-			description: `Most body characters per issue (1-${BODY_MAX_LIMIT}, default ${BODY_MAX_DEFAULT}).`,
-		},
+		...BODY_FLAGS,
+
 		{
 			name: "limit",
 			kind: "int",
@@ -483,15 +464,7 @@ export const issueList: ReadVerb<ListInput> = {
 			state: state as ListInput["state"],
 			labels,
 			search: search === undefined ? undefined : String(search).trim(),
-			fields: selectFields(args.flags.fields, LIST_FIELDS, hint),
-			bodyMax: rangeFlag(
-				args,
-				"body-max",
-				1,
-				BODY_MAX_LIMIT,
-				BODY_MAX_DEFAULT,
-				hint,
-			),
+			...bodyInput(args, LIST_FIELDS, hint),
 			limit: rangeFlag(
 				args,
 				"limit",
@@ -503,7 +476,8 @@ export const issueList: ReadVerb<ListInput> = {
 			offset: rangeFlag(args, "offset", 0, Number.MAX_SAFE_INTEGER, 0, hint),
 		};
 	},
-	async run(input, { target, api, commandWith, commandFor }) {
+	async run(input, ctx) {
+		const { target, api, commandWith, commandFor } = ctx;
 		// The server ignores an unknown or wrong-case label and lists every issue,
 		// so resolve the names first.
 		const labels =
@@ -531,26 +505,7 @@ export const issueList: ReadVerb<ListInput> = {
 					.max_response_items,
 		);
 		const items = window.map((issue) =>
-			fitItem(
-				pick(
-					{
-						number: issue.number,
-						title: issue.title,
-						state: issue.state,
-						labels: (issue.labels ?? []).map((l) => l.name),
-						...truncateBody(issue.body, input.bodyMax),
-						author: authorName(issue),
-						assignees: (issue.assignees ?? []).map((a) => a.login),
-						milestone: issue.milestone?.title ?? null,
-						comments: issue.comments,
-						created_at: issue.created_at,
-						updated_at: issue.updated_at,
-						closed_at: issue.closed_at,
-						url: issue.html_url,
-					},
-					input.fields,
-				),
-			),
+			bodyItem(issueFields(issue), input, ctx, "issue", issue.number),
 		);
 		const next = (at: number) => commandWith({ offset: at });
 		const shown = page(items, 0, items.length, (end) =>
@@ -914,7 +869,7 @@ export const issueEdit: WriteVerb<EditInput> = {
 	summary:
 		"Change the title, body, labels, or milestone of one or many issues. What is already so returns changed:false.",
 	notes: [
-		"--body-file replaces the whole body. To change part of it, read it whole first with issue get --body-max 20000.",
+		"--body-file replaces the whole body. To change part of it, read issue get and follow every body_next first.",
 		"Adding an exclusive label, such as priority/p1, removes the other label of its scope; removed shows it.",
 		"Label names match without case. An archived label can be removed, not added.",
 		"--milestone takes a title or an id; none removes the milestone. A closed milestone can be set.",

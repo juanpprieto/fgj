@@ -74,6 +74,7 @@ describe("fgj read pr get", () => {
 			head_sha: pull.head.sha,
 			url: `${server.url}/${repo.owner}/${repo.name}/pulls/${n}`,
 			body: "Why and how.",
+			discussion: `fgj read comment list ${server.url}/${repo.owner}/${repo.name}/pulls/${n}`,
 			as: "env",
 		});
 		expect(httpCalls(result)).toEqual([
@@ -170,14 +171,16 @@ describe("fgj read pr get", () => {
 		).toMatchObject({ number: first, state: "open" });
 	});
 
-	test("a body longer than --body-max is cut, with a hint that shows it whole", async () => {
+	test("a body longer than --body-max is cut, with an exact continuation", async () => {
 		const n = await addPull(server, repo, "Long body", "x".repeat(5000));
 		const out = await expectOk<Pr & { hint?: string }>(
 			await get(cwd, String(n)),
 		);
 		expect(out.body_truncated).toBe(true);
 		expect(out.body_chars).toBe(5000);
-		expect(out.hint).toBe(`fgj read pr get ${n} --body-max 20000`);
+		expect(out.body_next).toContain(
+			`/pulls/${n} --fields body --body-max 4000 --body-after `,
+		);
 	});
 
 	test("a closed PR has state closed, no merge commit, and no mergeable", async () => {
@@ -238,6 +241,8 @@ describe("fgj read pr get", () => {
 		const out = await expectOk<Pr & { hint?: string }>(
 			await get(await makeWorkDir(server), url),
 		);
-		expect(out.hint).toBe(`fgj read pr get ${url} --body-max 20000`);
+		expect(out.body_next).toStartWith(
+			`fgj read pr get ${url} --fields body --body-max 4000 --body-after `,
+		);
 	});
 });
