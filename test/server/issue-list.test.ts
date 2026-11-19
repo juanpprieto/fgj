@@ -189,7 +189,13 @@ describe("fgj read issue list", () => {
 		const out = await expectOk<List>(
 			await list(cwd, "--label", "area/b", "--fields", "number,body"),
 		);
-		expect(out.items).toEqual([{ number: aAndB, body: "" }]);
+		expect(out.items).toEqual([
+			{
+				number: aAndB,
+				body: "",
+				discussion: `fgj read comment list ${server.url}/${repo.owner}/${repo.name}/issues/${aAndB}`,
+			},
+		]);
 		await expectError(
 			await list(cwd, "--fields", "number,depends_on"),
 			"usage",

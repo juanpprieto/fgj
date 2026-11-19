@@ -1,16 +1,11 @@
 import { basename, extname } from "node:path";
 import { FgjError } from "../core/errors.ts";
 import {
-	BODY_MAX_DEFAULT,
 	BODY_MAX_LIMIT,
-	fitItem,
 	ITEM_BUDGET,
 	LIST_LIMIT_DEFAULT,
 	LIST_LIMIT_MAX,
 	page,
-	pick,
-	selectFields,
-	truncateBody,
 } from "../core/output.ts";
 import type {
 	FlagSpec,
@@ -23,8 +18,13 @@ import type { ReadApi, WriteApi } from "../forgejo/client.ts";
 import type { Target } from "../forgejo/target.ts";
 import {
 	authorName,
+	BODY_AFTER_FLAG,
 	BODY_FILE_FLAG,
 	BODY_FILE_MAX_BYTES,
+	BODY_FLAGS,
+	BODY_NOTES,
+	bodyInput,
+	bodyItem,
 	COMMENT_ARG_SHAPE,
 	type CommentRef,
 	commentRef,
@@ -47,8 +47,10 @@ interface ApiComment {
 	created_at: string;
 	updated_at: string;
 	html_url: string;
-	/** The issue's API URL. It ends in the issue number, for a PR comment too. */
+	/** The parent issue URL, empty for a PR comment. */
 	issue_url: string;
+	/** The parent PR URL, empty for an issue comment. */
+	pull_request_url?: string;
 	/** The comment's attachments. */
 	assets?: {
 		name: string;
@@ -141,9 +143,9 @@ export function fitAttachmentTexts(
 	return shown(low);
 }
 
-/** The issue number at the end of a comment's `issue_url`. */
+/** The issue or PR number at the end of a comment's parent URL. */
 function issueOf(c: ApiComment): number {
-	return Number(/(\d+)$/.exec(c.issue_url)?.[1]);
+	return Number(/(\d+)$/.exec(c.issue_url || c.pull_request_url || "")?.[1]);
 }
 
 const COMMENT_FIELDS = {
@@ -175,17 +177,8 @@ const LIST_FLAGS: readonly FlagSpec[] = [
 		kind: "int",
 		description: `The latest N comments, oldest first (1-${LIST_LIMIT_MAX}). Use it without --limit and --offset.`,
 	},
-	{
-		name: "fields",
-		kind: "fields",
-		value: "a,b",
-		description: "Comma list of fields. Alone, it lists the fields.",
-	},
-	{
-		name: "body-max",
-		kind: "int",
-		description: `Most body characters per comment (1-${BODY_MAX_LIMIT}, default ${BODY_MAX_DEFAULT}).`,
-	},
+	...BODY_FLAGS,
+
 	{
 		name: "author",
 		kind: "string",
@@ -236,6 +229,7 @@ export const commentList: ReadVerb<ListInput> = {
 	noun: "comment",
 	action: "list",
 	summary: "List the comments on an issue or pull request, oldest first.",
+	notes: BODY_NOTES,
 	args: [
 		{
 			name: "issue",
@@ -245,7 +239,7 @@ export const commentList: ReadVerb<ListInput> = {
 	flags: LIST_FLAGS,
 	fields: COMMENT_FIELDS,
 	output:
-		"{items:[{id,author,created_at,body}], total, next}. next is the exact command for the next page, or null. A cut body adds body_truncated, body_chars, and a top-level hint.",
+		"{items:[{id,author,created_at,body}], total, next}. next is the exact command for the next page, or null. Each cut body has body_next, separate from the comment-page next.",
 	examples: [
 		"fgj read comment list 157",
 		"fgj read comment list 157 --author alice --last 5 --fields id,body",
@@ -272,15 +266,7 @@ export const commentList: ReadVerb<ListInput> = {
 				flags.last === undefined
 					? undefined
 					: rangeFlag(args, "last", 1, max, max, hint),
-			fields: selectFields(flags.fields, COMMENT_FIELDS, hint),
-			bodyMax: rangeFlag(
-				args,
-				"body-max",
-				1,
-				BODY_MAX_LIMIT,
-				BODY_MAX_DEFAULT,
-				hint,
-			),
+			...bodyInput(args, COMMENT_FIELDS, hint),
 			author: filterFlag(args, "author", hint),
 			contains: filterFlag(args, "contains", hint),
 		};
@@ -288,7 +274,8 @@ export const commentList: ReadVerb<ListInput> = {
 	remoteOf(input) {
 		return input.ref.remote;
 	},
-	async run(input, { target, api, commandWith }) {
+	async run(input, ctx) {
+		const { target, api, commandWith } = ctx;
 		// Forgejo 16 has no page or limit on this endpoint: it returns every comment.
 		const comments = await api.get<ApiComment[]>(
 			`/repos/${target.owner}/${target.name}/issues/${input.ref.number}/comments`,
@@ -301,68 +288,46 @@ export const commentList: ReadVerb<ListInput> = {
 				(input.contains === undefined ||
 					(c.body ?? "").toLowerCase().includes(input.contains)),
 		);
-		const items = matches.map((c) =>
-			fitItem(
-				pick(
-					{
-						id: c.id,
-						author: authorName(c),
-						created_at: c.created_at,
-						updated_at: c.updated_at,
-						url: c.html_url,
-						...truncateBody(c.body, input.bodyMax),
-						attachments: attachmentsOf(c),
-					},
-					input.fields,
-				),
-			),
-		);
-		const arg = [input.ref.canonical];
 		const offset =
 			input.last === undefined
 				? input.offset
-				: Math.max(0, items.length - input.last);
+				: Math.max(0, matches.length - input.last);
 		const limit = input.last ?? input.limit;
+		const items = matches.slice(offset, offset + limit).map((c) =>
+			bodyItem(
+				{
+					id: c.id,
+					author: authorName(c),
+					created_at: c.created_at,
+					updated_at: c.updated_at,
+					url: c.html_url,
+					body: c.body ?? "",
+					attachments: attachmentsOf(c),
+				},
+				input,
+				ctx,
+				"comment",
+				input.ref.number,
+				c.id,
+			),
+		);
+		const arg = [input.ref.canonical];
+
 		// After --last, the rest of the thread is exactly what is left to show.
 		const nextFor = (end: number) =>
 			input.last === undefined
 				? commandWith({ offset: end }, arg)
 				: commandWith(
-						{ last: undefined, offset: end, limit: items.length - end },
+						{ last: undefined, offset: end, limit: matches.length - end },
 						arg,
 					);
-		const result: Record<string, unknown> = {
-			...page(items, offset, limit, nextFor),
+		const shown = page(items, 0, limit, (end) => nextFor(offset + end));
+		const end = offset + shown.items.length;
+		return {
+			...shown,
+			total: matches.length,
+			next: shown.next ?? (end < matches.length ? nextFor(end) : null),
 		};
-		const shown = result.items as Record<string, unknown>[];
-		const cut = shown.findIndex((c) => c.body_truncated === true);
-		const item = shown[cut];
-		if (item) {
-			const chars = Number(item.body_chars);
-			// Hint while a larger --body-max shows more; at the limit, a hint would
-			// repeat itself, so a note says how much fgj shows instead.
-			if (input.bodyMax < BODY_MAX_LIMIT) {
-				result.hint = commandWith(
-					{
-						last: undefined,
-						offset: offset + cut,
-						limit: 1,
-						"body-max": BODY_MAX_LIMIT,
-					},
-					arg,
-				);
-			}
-			if (input.bodyMax >= BODY_MAX_LIMIT || chars > BODY_MAX_LIMIT) {
-				const which =
-					item.id === undefined ? `at offset ${offset + cut}` : `${item.id}`;
-				const shownNow = Array.from(String(item.body)).length;
-				result.note =
-					chars > BODY_MAX_LIMIT
-						? `Comment ${which} is longer than ${BODY_MAX_LIMIT} characters (${chars}); fgj can show at most the first ${BODY_MAX_LIMIT}.`
-						: `Comment ${which} is too long for one fgj result (${chars} characters); fgj shows the first ${shownNow}.`;
-			}
-		}
-		return result;
 	},
 };
 
@@ -391,25 +356,25 @@ interface GetInput {
 	ref: CommentRef;
 	fields: readonly string[];
 	attachmentText: boolean;
+	bodyMax: number;
+	bodyAfter: string | undefined;
 }
 
-/** `fgj read comment get <comment>`: one comment, with its whole body for an edit. */
+/** `fgj read comment get <comment>`: one comment, with bounded body parts. */
 export const commentGet: ReadVerb<GetInput> = {
 	risk: "read",
 	noun: "comment",
 	action: "get",
-	summary: "Read one comment, with its whole body.",
+	summary: "Read one comment, with continuation for a long body.",
 	notes: [
-		"The body is whole, so you can change it and run comment edit. A body with body_truncated is cut: do not edit from it.",
+		...BODY_NOTES,
+		"Complete all body_next parts before editing a comment. Attachment text uses --attachment-text separately and has its own truncation limits.",
 	],
 	args: [COMMENT_ARG],
 	flags: [
-		{
-			name: "fields",
-			kind: "fields",
-			value: "a,b",
-			description: "Comma list of fields. Alone, it lists the fields.",
-		},
+		BODY_AFTER_FLAG,
+
+		...BODY_FLAGS,
 		{
 			name: "attachment-text",
 			kind: "bool",
@@ -418,7 +383,7 @@ export const commentGet: ReadVerb<GetInput> = {
 		REPO_FLAG,
 	],
 	fields: GET_FIELDS,
-	output: `{id, issue, author, body, attachments}; attachments, [{name, size}], only when the comment has any; --attachment-text adds content_type to each, text to a text file, and text_truncated with text_chars when a text is cut so the output fits; it never cuts the body for a text. A body over ${BODY_MAX_LIMIT} characters, or over the output cap after JSON escaping, adds body_truncated, body_chars, and a note.`,
+	output: `{id, issue, author, body, attachments}; attachments, [{name, size}], only when the comment has any; --attachment-text adds content_type to each, text to a text file, and text_truncated with text_chars when a text is cut so the output fits; it never cuts the body for a text. A body over ${BODY_MAX_LIMIT} characters, or over the output cap after JSON escaping, adds body_truncated, body_chars, body_offset, body_revision, and body_next.`,
 	examples: [
 		"fgj read comment get 770",
 		"fgj read comment get 770 --fields id,updated_at",
@@ -428,14 +393,15 @@ export const commentGet: ReadVerb<GetInput> = {
 		const hint = "fgj help comment get";
 		return {
 			ref: commentRef(args, hint),
-			fields: selectFields(args.flags.fields, GET_FIELDS, hint),
+			...bodyInput(args, GET_FIELDS, hint, BODY_MAX_LIMIT),
 			attachmentText: args.flags["attachment-text"] === true,
 		};
 	},
 	remoteOf(input) {
 		return input.ref.remote;
 	},
-	async run(input, { target, api }) {
+	async run(input, ctx) {
+		const { target, api } = ctx;
 		const c = plainComment(
 			await api.get<ApiComment | null>(
 				`/repos/${target.owner}/${target.name}/issues/comments/${input.ref.id}`,
@@ -448,29 +414,23 @@ export const commentGet: ReadVerb<GetInput> = {
 			input.attachmentText &&
 			input.fields.includes("attachments") &&
 			(c.assets ?? []).length > 0;
-		const fitted = fitItem(
-			pick(
-				{
-					id: c.id,
-					issue: issueOf(c),
-					author: authorName(c),
-					created_at: c.created_at,
-					updated_at: c.updated_at,
-					url: c.html_url,
-					...truncateBody(c.body, BODY_MAX_LIMIT),
-					attachments: texts ? undefined : attachmentsOf(c),
-				},
-				input.fields,
-			),
+		const item = bodyItem(
+			{
+				id: c.id,
+				issue: issueOf(c),
+				author: authorName(c),
+				created_at: c.created_at,
+				updated_at: c.updated_at,
+				url: c.html_url,
+				body: c.body ?? "",
+				attachments: texts ? undefined : attachmentsOf(c),
+			},
+			input,
+			ctx,
+			"comment",
+			issueOf(c),
+			c.id,
 		);
-		const shown = Array.from(String(fitted.body)).length;
-		const item =
-			fitted.body_truncated === true
-				? {
-						...fitted,
-						note: `fgj shows the first ${shown} of ${String(fitted.body_chars)} characters. Do not edit this comment from this body: the edit would delete the rest.`,
-					}
-				: fitted;
 		if (!texts) return item;
 		return {
 			...item,
@@ -647,7 +607,7 @@ export const commentEdit: WriteVerb<EditInput> = {
 		"Replace the body of your own comment from a file. The same body returns changed:false.",
 	notes: [
 		"Another author's comment fails with conflict (exit 5), and nothing changes.",
-		"To change part of a comment, run comment get first: it returns the whole body.",
+		"To change part of a comment, run comment get and follow every body_next first.",
 	],
 	args: [COMMENT_ARG],
 	flags: [BODY_FILE_FLAG, DRY_RUN_FLAG, REPO_FLAG],

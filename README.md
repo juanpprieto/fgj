@@ -177,14 +177,12 @@ stdout holds one JSON object. stderr holds `{error:{code,message,hint}}`, and th
 a runnable command. When fgj knows the account, the error also names it in `as`. An agent can follow fgj from one call to the next with no
 documentation open:
 
-```mermaid
-flowchart TD
-    run["Run an fgj command"] --> exit{exit code}
-    exit -- 0 --> next{"result has next?"}
-    next -- yes --> runnext["Run next exactly as given"] --> run
-    next -- no --> done["Done: the agent has everything"]
-    exit -- "1 to 7" --> hint["Read error.code and run error.hint"] --> run
-```
+Read the description and follow each `body_next`, concatenating its body parts.
+Then use `discussion` to read general comments, following its `next` pages and each
+comment's `body_next`. An absent `next` only ends the selected list; `--last` and
+filters select subsets. Formal reviews, inline feedback and attachments are separate.
+If a continuation detects an edit, discard that body's earlier parts and restart
+with the error's hint. Never replace a body using incomplete text.
 
 A list that has more items gives the command for the next page:
 
@@ -248,7 +246,7 @@ the arguments, flags, fields, output, examples, and notes. Help sends no request
 | Command | What it does |
 |---|---|
 | `fgj read comment list <issue>` | List the comments on an issue or pull request, oldest first. |
-| `fgj read comment get <comment>` | Read one comment, with its whole body. |
+| `fgj read comment get <comment>` | Read one comment, with continuation for a long body. |
 | `fgj write comment add <issue> --body-file PATH` | Add a comment from a file. A repeat of your latest comment returns changed:false. |
 | `fgj write comment edit <comment> --body-file PATH` | Replace the body of your own comment from a file. The same body returns changed:false. |
 | `fgj write comment attach <comment> --file PATH` | Upload a text file to your own comment. The same file again returns changed:false. |

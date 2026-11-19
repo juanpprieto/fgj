@@ -224,11 +224,27 @@ fgj does not support Gitea, and its tests cover only Forgejo 16.0.5.
 - Output (stdout): compact JSON.
   - Names, not objects: `author:"alice"`, `labels:["bug"]`. No avatar/API URLs or internal IDs. A color appears only when `--fields` asks for it.
   - `--fields a,b` selects fields; `--fields` alone lists them.
-  - Bodies truncate at `--body-max 4000` Unicode characters (at most 20000). Only a cut
-    body carries `body_truncated` and `body_chars`. While a larger `--body-max` shows
-    more, the result's `hint` is that command; when fgj cannot show the whole body, a
-    `note` says how much it shows. One item never passes the output cap: fgj measures
-    it after JSON escaping and cuts the body further if needed.
+  - Bodies are read in Unicode code-point parts: `--body-max` defaults to 4000
+    (20000 for comment get), at most 20000 per part, with no total body ceiling.
+    An incomplete body carries `body_truncated:true`, `body_chars` (full length),
+    `body_offset` (zero-based), `body_revision` (SHA-256 of the exact UTF-8 body),
+    and `body_next`, the exact command for its next part. Later parts retain the
+    offset, length and revision even at the end. Concatenate `body` values unchanged.
+    JSON escaping can shorten a part further; the next offset uses the actual part.
+    A selected body containing a known credential fails with conflict before any
+    part is returned, so splitting cannot bypass the output redactor. Metadata-only
+    reads still work. Remove the credential at the source before reading that body.
+  - `--body-after HASH:OFFSET` is an opaque continuation from `body_next`, accepted
+    only by single-target issue/pr/comment get with body selected, never `--head`.
+    Malformed cursors fail locally. A changed body fails with conflict and a restart
+    command; an out-of-range offset fails with usage. Each part re-reads the source;
+    this is not a frozen snapshot of the description and discussion.
+  - Reads that include an issue or PR body also expose `discussion`, a separate
+    `comment list` command. It sends no extra request. Metadata-only reads omit it.
+    Discussion excludes formal PR reviews, inline code comments and attachment text.
+    `next` advances items only; each cut body has its own `body_next`. Neither a
+    complete body nor a complete selected list proves that all discussion was read.
+    `--last` and filters select subsets. Never replace a body from incomplete text.
   - Hard cap of 28,000 characters, below the 30,000-character read-back limit of the
     harnesses.
   - Lists: 20 items default, `{items, total, next}`. `next` is the exact fgj command for

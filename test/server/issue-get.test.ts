@@ -70,6 +70,7 @@ describe("fgj read issue get", () => {
 			state: "open",
 			labels: ["type/bug"],
 			body: "Steps to reproduce.",
+			discussion: `fgj read comment list ${server.url}/${repo.owner}/${repo.name}/issues/${n}`,
 			as: "env",
 		});
 		expect(httpCalls(result)).toEqual([
@@ -156,7 +157,7 @@ describe("fgj read issue get", () => {
 		);
 	});
 
-	test("a body longer than --body-max is cut, with its length and a hint that shows it whole", async () => {
+	test("a body longer than --body-max is cut, with its length and an exact continuation", async () => {
 		const n = await createIssue(server, repo, "Long", {
 			body: "z".repeat(5000),
 		});
@@ -166,7 +167,9 @@ describe("fgj read issue get", () => {
 		expect(out.body_truncated).toBe(true);
 		expect(out.body_chars).toBe(5000);
 		expect(Array.from(out.body ?? "")).toHaveLength(4000);
-		expect(out.hint).toBe(`fgj read issue get ${n} --body-max 20000`);
+		expect(out.body_next).toContain(
+			`/issues/${n} --fields body --body-max 4000 --body-after `,
+		);
 	});
 
 	test("--fields picks fields, and --fields alone lists them", async () => {

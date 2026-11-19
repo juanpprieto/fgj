@@ -11,6 +11,8 @@ import {
 import { dirname, join } from "node:path";
 import { main } from "../../src/core/dispatch.ts";
 import { RISKS } from "../../src/core/verb.ts";
+import { gate } from "../../src/hooks/gate.ts";
+import { commandsRun } from "../../src/hooks/shell.ts";
 import {
 	claudeEntries,
 	claudeSettings,
@@ -921,3 +923,23 @@ describe("fgj rules commands", () => {
 		]);
 	});
 });
+
+test.skipIf(!codex)(
+	"body continuation commands pass all generated harness rules",
+	async () => {
+		const file = join(tempHome(), "fgj.rules");
+		await Bun.write(file, codexRules());
+		for (const [noun, ref] of [
+			["issue", "https://forge.example/o/r/issues/1"],
+			["pr", "https://forge.example/o/r/pulls/2"],
+			["comment", "https://forge.example/o/r/issues/1#issuecomment-3"],
+		]) {
+			const command = `fgj read ${noun} get '${ref}' --fields body --body-max 20000 --repo o/r --as reader --body-after ${"a".repeat(64)}:20000`;
+			expect(codexDecision(file, commandsRun(command)[0]?.words ?? [])).toBe(
+				"allow",
+			);
+			expect(claudeEntries().allow).toContain("Bash(fgj read *)");
+			expect(gate(command).action).toBe("pass");
+		}
+	},
+);

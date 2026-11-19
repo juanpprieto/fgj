@@ -434,6 +434,7 @@ async function runCommand(
 				web,
 				commandWith,
 				commandFor,
+				holdsSecret: ctx.holdsSecret,
 				...waitTimes,
 			})
 		: verb.run(input, {
@@ -442,6 +443,7 @@ async function runCommand(
 				web: writer,
 				commandWith,
 				commandFor,
+				holdsSecret: ctx.holdsSecret,
 				...waitTimes,
 			})
 	).catch((err: unknown) => {

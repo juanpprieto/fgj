@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { FgjError } from "./errors.ts";
 import type { FieldSpec, FlagValue } from "./verb.ts";
 
@@ -21,67 +22,87 @@ const ENVELOPE_RESERVE = 1000;
 export const ITEM_BUDGET = OUTPUT_CAP - ENVELOPE_RESERVE;
 
 /**
- * Cuts an item's body further until the item, serialized as JSON, fits in
- * `budget`. JSON escaping can double a body (quotes, backslashes, new lines), so
- * a body under `--body-max` can still pass the output cap.
- *
- * @param item - An output item with an optional string `body`.
- * @param budget - The most JSON characters the item may take.
- * @returns The item, or a copy with a shorter body, `body_truncated`, and `body_chars`.
+ * Fits one body part after JSON escaping, preserving an exact continuation.
+ * @param item - Selected output fields, with the full unmodified body when selected.
+ * @param part - Part size, optional cursor, and the command that restarts this body.
+ * @param budget - Maximum serialized item size, reserving space for its envelope.
+ * @returns A bounded item with body_next when more text remains.
  * @example
- * fitItem({ id: 1, body: "\\".repeat(20000) }, 27000).body_truncated; // true
+ * fitItem({ body: "abcdef" }, { max: 3, command: "fgj read issue get 1" }).body; // "abc"
  */
 export function fitItem(
 	item: Record<string, unknown>,
+	part: { max: number; after?: string | undefined; command: string },
 	budget: number = ITEM_BUDGET,
 ): Record<string, unknown> {
-	if (JSON.stringify(item).length <= budget || typeof item.body !== "string") {
+	if (typeof item.body !== "string") {
+		if (JSON.stringify(item).length > budget)
+			throw new FgjError(
+				"usage",
+				"Selected metadata exceeds the output cap; select fewer fields.",
+				part.command,
+			);
 		return item;
 	}
 	const chars = Array.from(item.body);
-	const total =
-		typeof item.body_chars === "number" ? item.body_chars : chars.length;
-	const withBody = (n: number) => ({
+	const revision = createHash("sha256").update(item.body).digest("hex");
+	const [expected, rawOffset] = part.after?.split(":") ?? [];
+	const offset = Number(rawOffset ?? 0);
+	if (expected !== undefined && expected !== revision) {
+		throw new FgjError(
+			"conflict",
+			"Body changed while reading. Discard its earlier parts and restart this body.",
+			part.command,
+		);
+	}
+	if (
+		!Number.isSafeInteger(offset) ||
+		offset < 0 ||
+		(part.after !== undefined && offset >= chars.length)
+	) {
+		throw new FgjError(
+			"usage",
+			"Body offset is outside this body. Restart the read.",
+			part.command,
+		);
+	}
+	const shown = (n: number) => ({
 		...item,
-		body: chars.slice(0, n).join(""),
-		body_truncated: true,
-		body_chars: total,
+		body: chars.slice(offset, offset + n).join(""),
+		...(offset > 0 || offset + n < chars.length
+			? {
+					body_offset: offset,
+					body_chars: chars.length,
+					body_revision: revision,
+				}
+			: {}),
+		...(offset + n < chars.length
+			? {
+					body_truncated: true,
+					body_next: `${part.command} --body-after ${revision}:${offset + n}`,
+				}
+			: {}),
 	});
 	let low = 0;
-	let high = chars.length;
+	let high = Math.min(part.max, chars.length - offset);
+	if (JSON.stringify(shown(high)).length <= budget) return shown(high);
 	while (low < high) {
 		const mid = Math.ceil((low + high) / 2);
-		if (JSON.stringify(withBody(mid)).length <= budget) low = mid;
+		if (JSON.stringify(shown(mid)).length <= budget) low = mid;
 		else high = mid - 1;
 	}
-	return withBody(low);
-}
-
-/** A body after truncation, ready to spread into an output item. */
-export type BodyOut =
-	| { body: string }
-	| { body: string; body_truncated: true; body_chars: number };
-
-/**
- * Cuts a body to `max` characters, counted in Unicode code points so a cut never
- * splits an emoji. Only a cut body carries `body_truncated` and `body_chars`.
- *
- * @param body - The full body text. `null` from the API counts as empty.
- * @param max - The most characters to keep, from `--body-max`.
- * @returns The body, plus the markers and the full length when the body was cut.
- * @example
- * truncateBody("abcdef", 3); // { body: "abc", body_truncated: true, body_chars: 6 }
- */
-export function truncateBody(body: string | null, max: number): BodyOut {
-	const text = body ?? "";
-	if (text.length <= max) return { body: text };
-	const chars = Array.from(text);
-	if (chars.length <= max) return { body: text };
-	return {
-		body: chars.slice(0, max).join(""),
-		body_truncated: true,
-		body_chars: chars.length,
-	};
+	const result = shown(low);
+	if (
+		(low === 0 && offset < chars.length) ||
+		JSON.stringify(result).length > budget
+	) {
+		throw new FgjError(
+			"usage",
+			"Selected metadata leaves no room for a body part; select fewer fields.",
+			part.command,
+		);
+	}
+	return result;
 }
 
 /**
@@ -118,8 +139,7 @@ export function selectFields(
 }
 
 /**
- * Keeps only the selected fields of one item. The `body` field brings its
- * truncation markers with it.
+ * Keeps only the selected fields of one item.
  *
  * @param item - The full item that the verb built.
  * @param fields - The names from {@link selectFields}.
@@ -133,10 +153,6 @@ export function pick(
 	fields: readonly string[],
 ): Record<string, unknown> {
 	const keep = new Set(fields);
-	if (keep.has("body")) {
-		keep.add("body_truncated");
-		keep.add("body_chars");
-	}
 	const out: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(item)) {
 		if (keep.has(key) && value !== undefined) out[key] = value;
